@@ -10,3 +10,5 @@ python manage.py collectstatic --no-input
 
 # Aplica las migraciones de la base de datos
 python manage.py migrate
+
+python crear_usuario.py
