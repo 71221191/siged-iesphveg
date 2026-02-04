@@ -30,7 +30,19 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
+# Detecta si estamos en Render
+RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
+
+if RENDER_EXTERNAL_HOSTNAME:
+    # Agregamos el dominio de Render a los permitidos
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    
+    # ESTO ES VITAL: Permite que los formularios (POST) funcionen en Render
+    CSRF_TRUSTED_ORIGINS = ['https://' + RENDER_EXTERNAL_HOSTNAME]
+else:
+    CSRF_TRUSTED_ORIGINS = []
 
 # Detecta si estamos en Render y añade el host automáticamente
 RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
@@ -131,13 +143,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') # Obligatorio para Render
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-# Esta configuración es para producción (cuando DEBUG es False)
-if not DEBUG:
-    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Forzar WhiteNoise en producción
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
     
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
