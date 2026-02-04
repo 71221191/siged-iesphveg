@@ -12,3 +12,5 @@ python manage.py collectstatic --no-input
 python manage.py migrate
 
 python crear_usuario.py
+
+python cargar_datos_mpi.py
