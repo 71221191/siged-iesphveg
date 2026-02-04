@@ -1,0 +1,413 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Expediente {{ documento.expediente_id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- 1. ENCABEZADO PRINCIPAL -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
+        
+        <!-- Título y Estado -->
+        <div>
+            <div class="d-flex align-items-center flex-wrap gap-2 mb-2">
+                <h2 class="h3 fw-bold text-dark mb-0 text-break">{{ documento.expediente_id }}</h2>
+                
+                <!-- Badge de Estado -->
+                {% if documento.estado == 'en_proceso' %}
+                    <span class="badge bg-warning text-dark border border-warning"><i class="bi bi-hourglass-split me-1"></i> En Proceso</span>
+                {% elif documento.estado == 'atendido' %}
+                    <span class="badge bg-success border border-success"><i class="bi bi-check-circle-fill me-1"></i> Finalizado</span>
+                {% elif documento.estado == 'observado' %}
+                    <span class="badge bg-danger border border-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i> Observado</span>
+                {% elif documento.estado == 'externo' %}
+                    <span class="badge bg-info text-dark border border-info"><i class="bi bi-pause-circle me-1"></i> Externo</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ documento.get_estado_display }}</span>
+                {% endif %}
+            </div>
+            
+            <p class="text-muted mb-0 small">
+                <i class="bi bi-folder2-open me-1"></i> {{ documento.procedimiento.nombre }} 
+                <br class="d-md-none"> <!-- Salto de línea solo en móvil -->
+                <span class="d-none d-md-inline mx-2">•</span> 
+                <i class="bi bi-calendar3 me-1"></i> {{ documento.fecha_ingreso|date:"d M Y, h:i A" }}
+            </p>
+        </div>
+
+        <!-- Botones de Acción Global (Imprimir / Procesar) -->
+        <div class="d-flex flex-wrap gap-2 w-100 w-md-auto">
+            <!-- Botón de Imprimir -->
+            <div class="dropdown flex-grow-1 flex-md-grow-0">
+                <button class="btn btn-white border dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-printer me-1"></i> Imprimir
+                </button>
+                <ul class="dropdown-menu shadow border-0">
+                    <li><a class="dropdown-item" href="{% url 'imprimir_cargo' documento.expediente_id %}" target="_blank"><i class="bi bi-receipt me-2"></i> Cargo</a></li>
+                    <li><a class="dropdown-item" href="{% url 'imprimir_etiqueta' documento.expediente_id %}" target="_blank"><i class="bi bi-qr-code me-2"></i> Etiqueta</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{% url 'imprimir_historial' documento.expediente_id %}" target="_blank"><i class="bi bi-file-text me-2"></i> Historial</a></li>
+                </ul>
+            </div>
+
+            {% if es_responsable %}
+                <a href="{% url 'derivar_documento' documento.expediente_id %}" class="btn btn-primary shadow-sm fw-bold flex-grow-1 flex-md-grow-0">
+                    <i class="bi bi-send-check me-2"></i> Procesar/Derivar
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-4">
+        
+        <!-- COLUMNA IZQUIERDA: DATOS CLAVE -->
+        <div class="col-lg-4">
+            
+            <!-- Tarjeta de Resumen -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body p-4">
+                    <h6 class="text-uppercase text-muted fw-bold small mb-3">Detalles del Solicitante</h6>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light rounded-circle p-3 me-3 text-primary">
+                            <i class="bi bi-person-vcard fs-4"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark">{{ documento.remitente }}</h6>
+                            <small class="text-muted">
+                                {% if documento.identificador_remitente %}
+                                    {{ documento.tipo_remitente }}: {{ documento.identificador_remitente }}
+                                {% else %}
+                                    Usuario Interno
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+
+                    <h6 class="text-uppercase text-muted fw-bold small mb-2 mt-4">Asunto</h6>
+                    <p class="bg-light p-3 rounded text-dark mb-0 fst-italic border-start border-4 border-primary">
+                        "{{ documento.asunto }}"
+                    </p>
+
+                    <h6 class="text-uppercase text-muted fw-bold small mb-2 mt-4">Ubicación Actual</h6>
+                    <div class="d-flex align-items-center text-danger fw-bold">
+                        <i class="bi bi-geo-alt-fill me-2 fs-5"></i>
+                        {% if documento.responsable_actual %}
+                            {{ documento.responsable_actual.unidad_organizativa }}
+                        {% else %}
+                            <!-- Buscamos el último movimiento para saber dónde terminó -->
+                            <span class="text-success">
+                                {{ documento.movimiento_set.last.usuario_origen.unidad_organizativa }} (Finalizado)
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if documento.archivo_adjunto %}
+                        <div class="d-grid mt-4">
+                            <a href="{{ documento.archivo_adjunto.url }}" target="_blank" class="btn btn-outline-primary">
+                                <i class="bi bi-file-earmark-pdf-fill me-2"></i> Ver Expediente Digital
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Acciones Secundarias (Editar/Anular) -->
+                {% if es_responsable or user.perfilusuario.rol.nombre in "Mesa de Partes,Dirección General" %}
+                <div class="card-footer bg-white border-0 pt-0 pb-4 px-4">
+                    <hr class="mb-3">
+                    <div class="dropdown w-100">
+                        <button class="btn btn-light border w-100 dropdown-toggle text-secondary" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-gear me-2"></i> Opciones Administrativas
+                        </button>
+                        <ul class="dropdown-menu w-100 border-0 shadow">
+                            {% if es_responsable %}
+                                <li><a class="dropdown-item" href="{% url 'editar_documento' documento.expediente_id %}"><i class="bi bi-pencil me-2"></i> Editar Datos</a></li>
+                                <li><a class="dropdown-item text-warning" href="{% url 'redireccionar_documento' documento.expediente_id %}"><i class="bi bi-signpost-split me-2"></i> Redireccionar (Error)</a></li>
+                            {% endif %}
+                            
+                            {% if user.perfilusuario.rol.nombre in "Mesa de Partes,Dirección General" and documento.estado != 'archivado' %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="{% url 'anular_documento' documento.expediente_id %}"><i class="bi bi-x-circle me-2"></i> Anular Expediente</a></li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- CASO 1: TRÁMITE EXTERNO (PAUSADO) -->
+            {% if documento.estado == 'externo' %}
+                <div class="card border-0 shadow-sm border-start border-4 border-info bg-info bg-opacity-10 mb-3">
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-white rounded-circle p-2 text-info me-3 shadow-sm">
+                                <i class="bi bi-pause-fill fs-4"></i>
+                            </div>
+                            <div>
+                                <small class="text-uppercase fw-bold text-info opacity-75">ESTADO DEL PLAZO</small>
+                                <h6 class="fw-bold text-dark mb-0 mt-1">RELOJ DETENIDO</h6>
+                                <small class="text-muted" style="font-size: 0.75rem;">
+                                    El expediente se encuentra en gestión externa.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <!-- CASO 2: EN PROCESO (CON RELOJ) -->
+            {% elif documento.fecha_limite_paso_actual and documento.estado == 'en_proceso' %}
+                <div class="card border-0 shadow-sm border-start border-4 mb-3 
+                    {% if es_vencido %}
+                        border-danger bg-danger bg-opacity-10
+                    {% elif 'días' not in tiempo_restante_str %} 
+                        border-warning bg-warning bg-opacity-10
+                    {% else %}
+                        border-success bg-success bg-opacity-10
+                    {% endif %}">
+                    
+                    <div class="card-body py-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <small class="text-uppercase fw-bold opacity-75 
+                                    {% if es_vencido %}text-danger{% else %}text-dark{% endif %}">
+                                    {% if es_vencido %}
+                                        <i class="bi bi-exclamation-circle-fill me-1"></i> PLAZO VENCIDO
+                                    {% else %}
+                                        <i class="bi bi-clock-history me-1"></i> TIEMPO RESTANTE
+                                    {% endif %}
+                                </small>
+                                
+                                <div class="h5 mb-0 fw-bold mt-1 
+                                    {% if es_vencido %}text-danger{% else %}text-dark{% endif %}">
+                                    {{ tiempo_restante_str }}
+                                </div>
+                                
+                                <small class="text-muted" style="font-size: 0.75rem;">
+                                    Vence: {{ documento.fecha_limite_paso_actual|date:"d M, Y - h:i A" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+        </div>
+
+        <!-- COLUMNA DERECHA: PESTAÑAS DE HISTORIAL Y RUTA -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-bottom-0 pt-4 px-4 pb-0">
+                    <ul class="nav nav-tabs card-header-tabs" id="myTab" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active fw-bold text-primary" id="ruta-tab" data-bs-toggle="tab" data-bs-target="#ruta" type="button">
+                                <i class="bi bi-diagram-3 me-2"></i> Ruta del Trámite
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link fw-bold text-secondary" id="historial-tab" data-bs-toggle="tab" data-bs-target="#historial" type="button">
+                                <i class="bi bi-clock-history me-2"></i> Historial de Movimientos
+                            </button>
+                        </li>
+                        {% if documento.logs_edicion.exists %}
+                        <li class="nav-item">
+                            <button class="nav-link fw-bold text-secondary" id="auditoria-tab" data-bs-toggle="tab" data-bs-target="#auditoria" type="button">
+                                <i class="bi bi-shield-lock me-2"></i> Auditoría
+                            </button>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <div class="card-body p-4">
+                    <div class="tab-content" id="myTabContent">
+
+                        <!-- TAB 1: RUTA VISUAL (Lógica Híbrida) -->
+                        <div class="tab-pane fade show active" id="ruta">
+                            
+                            <!-- ESCENARIO A: RUTA TUPA PLANIFICADA (Sin desvíos) -->
+                            {% if pasos_flujo %}
+                                <div class="timeline-clean">
+                                    {% for paso in pasos_flujo %}
+                                        <div class="timeline-item {% if paso.orden < documento.paso_actual or documento.estado == 'atendido' %}completed{% elif paso.orden == documento.paso_actual and documento.estado != 'atendido' %}active{% endif %}">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6 class="fw-bold mb-1">{{ paso.rol_responsable.nombre }}</h6>
+                                                <p class="text-muted small mb-0">{{ paso.descripcion }}</p>
+                                                
+                                                {% if paso.orden == documento.paso_actual and documento.estado != 'atendido' %}
+                                                    <span class="badge bg-primary bg-opacity-10 text-primary mt-2">
+                                                        <i class="bi bi-arrow-right-circle me-1"></i> En gestión
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+
+                            <!-- ESCENARIO B: RUTA DINÁMICA / DESVÍO DETECTADO -->
+                            {% else %}
+                                <div class="alert alert-warning border-warning bg-warning bg-opacity-10 small mb-4 text-dark">
+                                    <i class="bi bi-shuffle me-2"></i> <strong>Ruta Modificada:</strong> Este expediente ha sido desviado de su flujo original. Se muestra el recorrido real.
+                                </div>
+
+                                <div class="timeline-clean">
+                                    <!-- 1. Pasos Históricos (Orden Inverso para ver inicio arriba) -->
+                                    {% for mov in historial reversed %}
+                                        <div class="timeline-item completed">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6 class="fw-bold mb-1 text-dark">{{ mov.usuario_origen.unidad_organizativa }}</h6>
+                                                <p class="text-muted small mb-0">
+                                                    <i class="bi bi-check2-all text-success me-1"></i> {{ mov.get_tipo_display }}
+                                                </p>
+                                                <small class="text-secondary" style="font-size: 0.7rem;">{{ mov.fecha_movimiento|date:"d M, h:i A" }}</small>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+
+                                    <!-- 2. Ubicación Actual -->
+                                    {% if documento.estado != 'atendido' %}
+                                        <div class="timeline-item active">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6 class="fw-bold mb-1 text-primary">{{ documento.responsable_actual.unidad_organizativa }}</h6>
+                                                <span class="badge bg-primary mt-2">📍 Ubicación Actual</span>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="timeline-item completed">
+                                            <div class="timeline-marker"></div>
+                                            <div class="timeline-content">
+                                                <h6 class="fw-bold mb-1 text-success">ARCHIVO FINAL</h6>
+                                                <span class="badge bg-success mt-2">🏁 Finalizado</span>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- TAB 2: HISTORIAL DETALLADO (CON MENSAJES) -->
+                        <div class="tab-pane fade" id="historial">
+                            <div class="list-group list-group-flush">
+                                {% for mov in historial %}
+                                <div class="list-group-item px-0 py-3 border-bottom">
+                                    
+                                    <!-- Encabezado del Movimiento -->
+                                    <div class="d-flex w-100 justify-content-between mb-2">
+                                        <div>
+                                            <!-- Etiqueta de Tipo -->
+                                            <!-- ETIQUETAS INTELIGENTES DE HISTORIAL -->
+                                            {% if mov.tipo == 'observacion' %}
+                                                <span class="badge bg-danger bg-opacity-10 text-danger border border-danger">OBSERVACIÓN</span>
+                                            
+                                            {% elif mov.tipo == 'asignacion_interna' %}
+                                                <span class="badge bg-info bg-opacity-10 text-info border border-info">ASIGNACIÓN INTERNA</span>
+                                            
+                                            {% elif mov.tipo == 'finalizacion' %}
+                                                <span class="badge bg-success bg-opacity-10 text-success border border-success">FINALIZACIÓN</span>
+
+                                            {% else %}
+                                                <!-- AQUÍ DETECTAMOS EL DESVÍO POR EL TEXTO -->
+                                                {% if "[DESVÍO" in mov.observaciones %}
+                                                    <span class="badge bg-warning bg-opacity-10 text-dark border border-warning">
+                                                        <i class="bi bi-shuffle me-1"></i> DESVÍO MANUAL
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-light text-dark border">DERIVACIÓN</span>
+                                                {% endif %}
+                                            {% endif %}
+                                            
+                                            <small class="text-muted ms-2">{{ mov.fecha_movimiento|date:"d/m/Y h:i A" }}</small>
+                                        </div>
+                                        
+                                        {% if mov.archivo_adjunto %}
+                                            <a href="{{ mov.archivo_adjunto.url }}" target="_blank" class="btn btn-sm btn-outline-primary py-0" style="font-size: 0.75rem;">
+                                                <i class="bi bi-paperclip"></i> Ver Adjunto
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- De / Para -->
+                                    <div class="d-flex align-items-center small mb-2">
+                                        <!-- ORIGEN -->
+                                        <div class="fw-bold text-dark me-2">
+                                            <i class="bi bi-person-fill text-secondary"></i> 
+                                            {% if mov.usuario_origen %}
+                                                {{ mov.usuario_origen.usuario.get_full_name|default:mov.usuario_origen.unidad_organizativa }}
+                                            {% else %}
+                                                SISTEMA
+                                            {% endif %}
+                                        </div>
+
+                                        <i class="bi bi-arrow-right text-muted mx-2"></i>
+
+                                        <!-- DESTINO -->
+                                        <div class="fw-bold text-dark">
+                                            <i class="bi bi-person-bounding-box text-secondary"></i>
+                                            {% if mov.unidad_destino %}
+                                                {{ mov.unidad_destino.usuario.get_full_name|default:mov.unidad_destino.unidad_organizativa }}
+                                            {% else %}
+                                                <span class="text-success">FIN DEL TRÁMITE</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- EL MENSAJE / OBSERVACIÓN (LO QUE FALTABA) -->
+                                    {% if mov.observaciones %}
+                                        <div class="bg-light p-3 rounded text-dark fst-italic border-start border-3 border-primary small mt-2">
+                                            <i class="bi bi-chat-left-quote-fill text-primary me-2 opacity-50"></i> 
+                                            "{{ mov.observaciones }}"
+                                        </div>
+                                    {% endif %}
+
+                                </div>
+                                {% empty %}
+                                    <p class="text-center text-muted my-4">Sin movimientos registrados.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: AUDITORÍA -->
+                        <div class="tab-pane fade" id="auditoria">
+                            <div class="table-responsive">
+                                <table class="table table-sm text-small">
+                                    <thead><tr><th>Fecha</th><th>Usuario</th><th>Cambio</th></tr></thead>
+                                    <tbody>
+                                        {% for log in documento.logs_edicion.all %}
+                                        <tr>
+                                            <td>{{ log.fecha|date:"d/m/Y H:i" }}</td>
+                                            <td>{{ log.usuario }}</td>
+                                            <td>{{ log.cambios }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ESTILOS TIMELINE LIMPIO -->
+<style>
+    .timeline-clean { padding-left: 10px; border-left: 2px solid #e9ecef; margin-left: 10px; }
+    .timeline-item { position: relative; padding-left: 30px; margin-bottom: 25px; }
+    .timeline-marker { 
+        position: absolute; left: -9px; top: 0; width: 16px; height: 16px; 
+        border-radius: 50%; background: #fff; border: 3px solid #ced4da; 
+    }
+    .timeline-item.completed .timeline-marker { border-color: #198754; background: #198754; }
+    .timeline-item.active .timeline-marker { border-color: #0d6efd; background: #fff; box-shadow: 0 0 0 3px rgba(13,110,253,0.2); }
+</style>
+{% endblock %}
+
+                <div style="line-height: 1.1;">
+                    <span class="d-block fw-bold text-primary" style="letter-spacing: 2.3px;">SIGED - IESP HVEG</span>
+                    <span class="d-block text-muted text-uppercase"
+                        style="font-size: 0.65rem; letter-spacing: 1px;">Sistema de Gestión Documentaria</span>
+                </div>

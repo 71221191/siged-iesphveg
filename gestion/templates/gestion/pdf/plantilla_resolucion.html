@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Resolución Directoral</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm;
+        }
+        body {
+            font-family: "Helvetica", sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #000;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 14pt;
+            text-transform: uppercase;
+        }
+        .header p {
+            margin: 0;
+            font-size: 10pt;
+        }
+        .titulo-res {
+            text-align: center;
+            font-weight: bold;
+            font-size: 16pt;
+            text-decoration: underline;
+            margin: 30px 0;
+        }
+        .visto {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        .considerando {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        .resuelve {
+            margin-top: 20px;
+        }
+        .articulo {
+            margin-bottom: 15px;
+            text-align: justify;
+            text-indent: 30px;
+        }
+        .firma {
+            margin-top: 100px;
+            text-align: center;
+        }
+        .linea-firma {
+            border-top: 1px solid #000;
+            width: 50%;
+            margin: 0 auto;
+            padding-top: 5px;
+        }
+        .fecha {
+            text-align: right;
+            margin-top: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>IESP "HNO. VICTORINO ELORZ GOICOECHEA"</h2>
+        <p>Ministerio de Educación - Cajamarca</p>
+        <p><em>"Año del Bicentenario, de la consolidación de nuestra Independencia"</em></p>
+    </div>
+
+    <div class="fecha">
+        Cajamarca, {{ fecha|date:"d" }} de {{ fecha|date:"F" }} del {{ fecha|date:"Y" }}
+    </div>
+
+    <div class="titulo-res">
+        RESOLUCIÓN DIRECTORAL N° {{ codigo }}
+    </div>
+
+    <div class="visto">
+        <strong>VISTO:</strong> El expediente administrativo N° <strong>{{ documento.expediente_id }}</strong>, presentado por don/doña <strong>{{ documento.remitente|upper }}</strong>, identificado con DNI N° {{ documento.identificador_remitente }}, sobre {{ documento.procedimiento.nombre }}; y,
+    </div>
+
+    <div class="considerando">
+        <strong>CONSIDERANDO:</strong>
+        <br><br>
+        Que, el Instituto de Educación Superior Pedagógico "Hno. Victorino Elorz Goicoechea" goza de autonomía académica, económica y administrativa conforme a Ley;
+        <br><br>
+        Que, el solicitante ha cumplido con los requisitos establecidos en el Reglamento Institucional y el Texto Único de Procedimientos Administrativos (TUPA);
+        <br><br>
+        Que, la Unidad Académica y la Secretaría Académica han emitido opinión favorable respecto a lo solicitado en el expediente de la referencia;
+        <br><br>
+        De conformidad con las normas legales vigentes y en uso de las atribuciones conferidas a la Dirección General;
+    </div>
+
+    <div class="resuelve">
+        <strong>SE RESUELVE:</strong>
+    </div>
+
+    <div class="articulo">
+        <strong>ARTÍCULO PRIMERO.- DECLARAR PROCEDENTE</strong> la solicitud de <strong>{{ documento.procedimiento.nombre|upper }}</strong> a favor del estudiante/egresado <strong>{{ documento.remitente|upper }}</strong>.
+    </div>
+
+    <div class="articulo">
+        <strong>ARTÍCULO SEGUNDO.- ENCARGAR</strong> a la Secretaría Académica el registro, archivo y notificación de la presente Resolución conforme a Ley.
+    </div>
+
+    <div class="articulo">
+        <strong>ARTÍCULO TERCERO.- DISPONER</strong> su publicación en el portal institucional.
+    </div>
+
+    <!-- ... Resto del contenido anterior ... -->
+
+    <div class="firma">
+        <div class="linea-firma">
+            <strong>DIRECTOR GENERAL</strong><br>
+            IESP "Hno. Victorino Elorz Goicoechea"<br>
+            Cajamarca
+        </div>
+    </div>
+
+    <!-- NUEVO: PIE DE PÁGINA CON QR -->
+    <div style="position: absolute; bottom: 20px; left: 0; right: 0; border-top: 1px solid #ccc; padding-top: 10px;">
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 80px;">
+                    <!-- Insertamos la imagen Base64 -->
+                    <img src="data:image/png;base64,{{ qr_imagen }}" style="width: 70px; height: 70px;">
+                </td>
+                <td style="vertical-align: middle; font-size: 8pt; color: #555;">
+                    <strong>Verificación Digital:</strong><br>
+                    Esta es una copia auténtica imprimible de un documento electrónico archivado en el SGD del IESP HVEG.<br>
+                    Puede verificar su integridad escaneando el código QR o ingresando a:<br>
+                    <u>{{ url_validacion }}</u>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+</body>
+</html>

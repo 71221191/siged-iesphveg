@@ -1,0 +1,521 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Procesar Documento{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        
+        <!-- 1. ENCABEZADO (Estilo Unificado) -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3 border border-primary border-opacity-25">
+                <i class="bi bi-gear-wide-connected fs-2"></i>
+            </div>
+            <div>
+                <h2 class="h4 fw-bold mb-0 text-dark">Procesar Expediente</h2>
+                <p class="text-muted small mb-0">
+                    Expediente N° <strong>{{ documento.expediente_id }}</strong> 
+                    <span class="mx-2">•</span> 
+                    {{ documento.procedimiento.codigo }}
+                </p>
+            </div>
+        </div>
+
+        <!-- FORMULARIO GLOBAL -->
+        <form method="post" enctype="multipart/form-data" id="formDerivacion" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-4">
+                
+                <!-- COLUMNA IZQUIERDA: TRABAJO -->
+                <div class="col-md-7">
+                    
+                    <!-- TARJETA 1: RUTA VISUAL -->
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-diagram-3-fill me-2"></i>Flujo de Trabajo</h6>
+                        </div>
+                        <div class="card-body p-4">
+                            <!-- Visualizador de Ruta -->
+                            <div class="d-flex align-items-center justify-content-between text-center bg-light rounded-3 p-3 border border-dashed">
+                                <div style="flex: 1;">
+                                    <small class="text-uppercase text-muted fw-bold d-block" style="font-size: 0.65rem;">Ubicación Actual</small>
+                                    <div class="fw-bold text-dark small mt-1">{{ user.perfilusuario.unidad_organizativa }}</div>
+                                </div>
+                                <div class="px-3">
+                                    <i class="bi bi-arrow-right-circle-fill fs-3 text-primary opacity-75"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <small class="text-uppercase text-muted fw-bold d-block" style="font-size: 0.65rem;">Siguiente Paso</small>
+                                    <div class="fw-bold small mt-1 {% if es_ultimo_paso %}text-success{% else %}text-dark{% endif %}">
+                                        {% if es_ultimo_paso %}
+                                            <i class="bi bi-check-circle-fill me-1"></i> FINALIZAR
+                                        {% else %}
+                                            {{ siguiente_area }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TARJETA 2: ACCIONES (Input) -->
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-pencil-square me-2"></i>Acciones y Adjuntos</h6>
+                        </div>
+                        <div class="card-body p-4">
+
+                            {% if es_flujo_libre %}
+                            <div class="mb-4 p-3 bg-info bg-opacity-10 border border-info rounded">
+                                <label class="form-label fw-bold text-dark small"><i class="bi bi-signpost-split me-1"></i> Seleccione Siguiente Destino</label>
+                                {{ form.destino_libre }}
+                                <div class="form-text small text-dark">
+                                    Este es un trámite libre. Elija a quién enviar el documento, o deje vacío para <strong>FINALIZAR</strong>.
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            <!-- ZONA DE CAMBIO DE RUTA (Solo si NO es flujo libre, porque el libre ya es manual) -->
+                            {% if user.perfilusuario.rol.es_jefe and not es_flujo_libre and not es_ultimo_paso %}
+                            <div class="mb-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                                <div class="form-check form-switch">
+                                    {{ form.forzar_destino }}
+                                    <label class="form-check-label fw-bold small text-dark cursor-pointer" for="checkForzar">
+                                        ⚠ Forzar cambio de ruta (Excepción)
+                                    </label>
+                                </div>
+                                
+                                <!-- Selector Desplegable -->
+                                <div id="zonaSelectorManual" style="display: none;" class="mt-2">
+                                    <label class="form-label small text-muted">Seleccione nuevo destino:</label>
+                                    {{ form.destino_libre }}
+                                    <div class="form-text small text-danger">Atención: Esto desviará el documento del flujo oficial TUPA.</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Si YA ES flujo libre, mostramos el selector directo sin switch -->
+                            {% if es_flujo_libre %}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small text-primary">Siguiente Destino (Flujo Libre)</label>
+                                {{ form.destino_libre }}
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Observaciones -->
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Observaciones / Proveído <span class="text-danger">*</span></label>
+                                <textarea name="observaciones" class="form-control" rows="4" required placeholder="Indique las instrucciones, conclusiones o acciones realizadas..."></textarea>
+                                <div class="invalid-feedback fw-bold small">Debe ingresar una observación o proveído para continuar.</div>
+                            </div>
+
+                            <!-- Archivo -->
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-muted text-uppercase">Adjuntar Documento (Opcional)</label>
+                                
+                                <div class="bg-light p-3 rounded border border-dashed text-center">
+                                    <i class="bi bi-cloud-arrow-up text-secondary fs-4 mb-2 d-block"></i>
+                                    {{ form.archivo_adjunto }}
+                                </div>
+
+                                <!-- Ayuda Contextual -->
+                                <div class="alert alert-info d-flex align-items-start mt-3 py-2 px-3 small border-0 bg-opacity-10 bg-info text-info mb-0">
+                                    <i class="bi bi-info-circle-fill me-2 mt-1"></i>
+                                    <div>
+                                        {% if "Unidad Académica" in user.perfilusuario.rol.nombre %}
+                                            <strong>Nota para Comisión:</strong> Suba aquí el Acta o Informe Técnico.
+                                        {% elif "Dirección" in user.perfilusuario.rol.nombre %}
+                                            <strong>Nota:</strong> La Resolución se generará automáticamente al firmar.
+                                        {% else %}
+                                            Puede adjuntar informes, oficios o capturas si el trámite lo requiere.
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- COLUMNA DERECHA: CONTEXTO Y BOTONES (Sticky) -->
+                <div class="col-md-5">
+                    <div class="sticky-top" style="top: 20px; z-index: 10;">
+                        
+                        <!-- TARJETA 3: RESUMEN (Contexto) -->
+                        <div class="card shadow-sm border-0 mb-3 bg-light">
+                            <div class="card-header bg-transparent border-bottom py-3">
+                                <h6 class="mb-0 fw-bold text-secondary small"><i class="bi bi-card-text me-2"></i>RESUMEN DEL EXPEDIENTE</h6>
+                            </div>
+                            <div class="card-body p-4">
+                                <ul class="list-unstyled small text-dark mb-0">
+                                    <li class="mb-3">
+                                        <span class="d-block text-muted x-small text-uppercase fw-bold">Solicitante</span>
+                                        {{ documento.remitente }}
+                                        {% if documento.identificador_remitente %}
+                                            <span class="text-muted">({{ documento.identificador_remitente }})</span>
+                                        {% endif %}
+                                    </li>
+                                    <li class="mb-3">
+                                        <span class="d-block text-muted x-small text-uppercase fw-bold">Asunto</span>
+                                        "{{ documento.asunto }}"
+                                    </li>
+                                    <li>
+                                        <span class="d-block text-muted x-small text-uppercase fw-bold mb-1">Estado Inicial</span>
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success">
+                                            <i class="bi bi-check-all me-1"></i> Requisitos Validados
+                                        </span>
+                                    </li>
+                                </ul>
+                                
+                                {% if documento.archivo_adjunto %}
+                                    <hr class="border-secondary opacity-25">
+                                    <a href="{{ documento.archivo_adjunto.url }}" target="_blank" class="btn btn-outline-dark btn-sm w-100 bg-white">
+                                        <i class="bi bi-file-earmark-pdf me-1"></i> Ver PDF Original
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- BOTONES DE ACCIÓN PRINCIPAL -->
+                         <!-- PANEL DE ACCIONES -->
+                        <div class="d-grid gap-2 mb-3">
+                            
+                            <!-- Alerta de Validación -->
+                            <div id="msgFaltanDatos" class="alert alert-warning text-center small py-1 mb-2 shadow-sm border-warning" style="display:none;">
+                                <strong><i class="bi bi-exclamation-triangle me-1"></i> Atención:</strong> Complete los campos obligatorios (*).
+                            </div>
+
+                            <!-- CASO 1: SOY JEFE (Puedo asignar o derivar) -->
+                            {% if mostrar_boton_asignar %}
+                                <!-- Botón Asignar -->
+                                <button type="button" class="btn btn-info text-white btn-lg fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#modalAsignar">
+                                    <i class="bi bi-people-fill me-2"></i> ASIGNAR A PERSONAL
+                                </button>
+                                
+                                <!-- Botón Aprobar (El Jefe sí puede enviar a otra área) -->
+                                <button type="button" class="btn btn-primary btn-lg fw-bold shadow-sm" onclick="validarYabrirModal('modalAprobar')">
+                                    {% if es_flujo_libre %}
+                                        <!-- Texto dinámico -->
+                                        CONFIRMAR ACCIÓN <i class="bi bi-send-fill ms-2"></i>
+                                    {% elif es_ultimo_paso %}
+                                        FINALIZAR TRÁMITE <i class="bi bi-check-lg ms-2"></i>
+                                    {% else %}
+                                        APROBAR Y ENVIAR <i class="bi bi-send-fill ms-2"></i>
+                                    {% endif %}
+                                </button>
+                            
+                            <!-- CASO 2: SOY ASISTENTE (Solo puedo devolver al Jefe) -->
+                            {% elif mostrar_boton_retornar_jefe %}
+                                
+                                <div class="alert alert-light border-primary border-start border-4 text-primary small">
+                                    <i class="bi bi-info-circle-fill me-1"></i> 
+                                    Usted está en rol operativo. Al finalizar, debe devolver el expediente a Jefatura.
+                                </div>
+
+                                <button type="button" class="btn btn-success btn-lg fw-bold shadow-sm" onclick="validarYabrirModal('modalRetornoJefe')">
+                                    <i class="bi bi-arrow-return-left me-2"></i> ENTREGAR A JEFE
+                                </button>
+
+                            <!-- CASO 3: SOY JEFE SIN EQUIPO O UNICO (Comportamiento normal) -->
+                            {% else %}
+                                <button type="button" class="btn btn-primary btn-lg fw-bold shadow-sm" onclick="validarYabrirModal('modalAprobar')">
+                                    {% if es_flujo_libre %}
+                                        <!-- Texto dinámico -->
+                                        CONFIRMAR ACCIÓN <i class="bi bi-send-fill ms-2"></i>
+                                    {% elif es_ultimo_paso %}
+                                        FINALIZAR TRÁMITE <i class="bi bi-check-lg ms-2"></i>
+                                    {% else %}
+                                        APROBAR Y ENVIAR <i class="bi bi-send-fill ms-2"></i>
+                                    {% endif %}
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <!-- ACCIONES SECUNDARIAS (Excepciones) -->
+                        <div class="row g-2">
+                            <!-- AQUÍ ESTABA EL BOTÓN REPETIDO. ¡YA LO BORRAMOS! -->
+                            
+                            <div class="col-6">
+                                <button type="button" class="btn btn-outline-danger w-100 btn-sm fw-bold" onclick="validarYabrirModal('modalObservar')">
+                                    <i class="bi bi-arrow-return-left me-1"></i> Observar
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                {% if not es_ultimo_paso %}
+                                <button type="button" class="btn btn-outline-warning text-dark w-100 btn-sm fw-bold" onclick="validarYabrirModal('modalExterno')">
+                                    <i class="bi bi-pause-circle me-1"></i> Ext.
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        
+                        <div class="text-center mt-3">
+                            <a href="{% url 'detalle_documento' documento.expediente_id %}" class="text-decoration-none text-muted small">
+                                <i class="bi bi-x-circle me-1"></i> Cancelar operación
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ================= MODALES ================= -->
+
+<!-- 1. MODAL APROBAR -->
+<div class="modal fade" id="modalAprobar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-send-check-fill me-2"></i>Confirmar Envío</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-2 text-muted">Se derivará el expediente a la bandeja de:</p>
+                <h4 class="text-primary fw-bold">
+                    {% if es_ultimo_paso %}
+                        ARCHIVO FINAL
+                    {% else %}
+                        <span id="textoDestinoModal">{{ siguiente_area }}</span>
+                    {% endif %}
+                </h4>
+                <p class="small text-muted mt-2 mb-0">Esta acción es irreversible y notificará al destinatario.</p>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formDerivacion" name="accion" value="derivar" class="btn btn-primary fw-bold px-4">Sí, Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. MODAL ASIGNAR (NUEVO) -->
+<div class="modal fade" id="modalAsignar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-people-fill me-2"></i>Asignación Interna</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">
+                    Delegue este expediente a un miembro de su equipo.<br>
+                    El trámite se mantendrá en <strong>{{ user.perfilusuario.unidad_organizativa }}</strong>.
+                </p>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-info">Seleccionar Colaborador:</label>
+                    {{ form.responsable_interno }}
+                </div>
+                
+                <!-- NUEVO: CAMPO DE OBSERVACIÓN DENTRO DEL MODAL -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-info">Instrucciones para el colaborador:</label>
+                    <textarea id="obsModalAsignar" class="form-control" rows="2" placeholder="Ej: Por favor revisar y emitir informe..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <!-- Botón llama a una función JS específica -->
+                <button type="button" onclick="enviarAsignacion()" class="btn btn-info text-white fw-bold">Confirmar Asignación</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. MODAL OBSERVAR -->
+<div class="modal fade" id="modalObservar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-octagon-fill me-2"></i>Observar Expediente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold text-danger">El expediente será devuelto a la oficina anterior.</p>
+                <div class="alert alert-danger bg-opacity-10 border-0 small mb-0">
+                    <i class="bi bi-pencil-fill me-1"></i> Verifique que haya explicado el motivo en el campo "Observaciones".
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formDerivacion" name="accion" value="observar" class="btn btn-danger fw-bold">Confirmar Devolución</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 4. MODAL EXTERNO -->
+<div class="modal fade" id="modalExterno" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="bi bi-building-up me-2"></i>Trámite Externo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>El expediente quedará pausado en estado <strong>"En Trámite Externo"</strong>.</p>
+                <p class="small text-muted mb-0">Use esta opción si el documento físico salió del instituto (MINEDU/SUNEDU) y espera su retorno.</p>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formDerivacion" name="accion" value="externo" class="btn btn-warning text-dark fw-bold">Confirmar Pausa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 5. MODAL RETORNO A JEFE -->
+<div class="modal fade" id="modalRetornoJefe" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-check-circle-fill me-2"></i>Entregar Trabajo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-2 text-muted">El expediente será devuelto a su Jefe de Área:</p>
+                <h4 class="text-success fw-bold">
+                    {% if jefe_area %}
+                        {{ jefe_area.usuario.get_full_name|default:jefe_area.usuario.username }}
+                    {% else %}
+                        <span class="text-danger fs-6"><i class="bi bi-exclamation-circle"></i> No se detectó un Jefe de Área</span>
+                    {% endif %}
+                </h4>
+                <p class="small text-muted mt-2 mb-0">Confirme que ha adjuntado los informes o realizado las acciones solicitadas.</p>
+            </div>
+            <div class="modal-footer bg-light border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="formDerivacion" name="accion" value="retornar_jefe" class="btn btn-success fw-bold px-4">Confirmar Entrega</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        
+        // --- A. LÓGICA DE SWITCH "FORZAR RUTA" Y TEXTO MODAL ---
+        const checkForzar = document.getElementById('checkForzar');
+        const zonaSelector = document.getElementById('zonaSelectorManual');
+        const selectManual = document.getElementById('selectDestinoManual');
+        
+        // Elementos del Modal
+        const spanDestinoModal = document.getElementById('textoDestinoModal');
+        // OJO: Usamos 'safe' de Django para que no rompa si hay comillas
+        const textoOriginal = "{{ siguiente_area|escapejs }}"; 
+
+        function actualizarInterfaz() {
+            if (checkForzar && checkForzar.checked) {
+                // Mostrar selector
+                zonaSelector.style.display = 'block';
+                
+                // Actualizar texto del modal si hay selección
+                if (selectManual && selectManual.value && spanDestinoModal) {
+                    const textoSeleccionado = selectManual.options[selectManual.selectedIndex].text;
+                    spanDestinoModal.innerText = textoSeleccionado;
+                    spanDestinoModal.classList.add('text-warning'); // Color de advertencia
+                } else if (spanDestinoModal) {
+                    // Si activó el check pero no eligió nada aún
+                    spanDestinoModal.innerText = "(Seleccione destino...)";
+                }
+            } else {
+                // Ocultar selector y restaurar texto original
+                zonaSelector.style.display = 'none';
+                if (selectManual) selectManual.value = "";
+                if (spanDestinoModal) {
+                    spanDestinoModal.innerText = textoOriginal;
+                    spanDestinoModal.classList.remove('text-warning');
+                }
+            }
+        }
+
+        // Listeners
+        if(checkForzar) checkForzar.addEventListener('change', actualizarInterfaz);
+        if(selectManual) selectManual.addEventListener('change', actualizarInterfaz);
+        
+        // Inicializar (por si el navegador recuerda el check)
+        actualizarInterfaz();
+    });
+
+    // --- B. VALIDACIONES GENERALES PARA MODALES ---
+    function validarYabrirModal(modalId) {
+        const form = document.getElementById('formDerivacion');
+        const msgFaltanDatos = document.getElementById('msgFaltanDatos');
+        const checkForzar = document.getElementById('checkForzar');
+        const selectManual = document.getElementById('selectDestinoManual');
+
+        // Validación extra: Si forzó ruta, debe elegir destino
+        if (checkForzar && checkForzar.checked && selectManual && !selectManual.value && modalId === 'modalAprobar') {
+            alert("⚠️ Ha activado el cambio de ruta. Por favor seleccione un Área de Destino.");
+            return;
+        }
+
+        // Validación estándar HTML5
+        if (form.checkValidity()) {
+            var myModal = new bootstrap.Modal(document.getElementById(modalId));
+            myModal.show();
+            msgFaltanDatos.style.display = 'none';
+        } else {
+            form.classList.add('was-validated');
+            msgFaltanDatos.style.display = 'block';
+        }
+    }
+
+    // --- C. ASIGNACIÓN INTERNA (JEFE -> EMPLEADO) ---
+    function enviarAsignacion() {
+        const form = document.getElementById('formDerivacion');
+        const obsPrincipal = document.getElementsByName('observaciones')[0];
+        const selectColaborador = document.getElementById('id_responsable_interno');
+
+        if (!selectColaborador.value) {
+            alert("⚠️ Por favor seleccione un colaborador.");
+            return;
+        }
+
+        if (!obsPrincipal.value.trim()) {
+            obsPrincipal.value = "Asignación interna de expediente.";
+        }
+
+        // Inyectar datos ocultos
+        const inputExistente = document.getElementById('hidden_responsable');
+        if(inputExistente) inputExistente.remove();
+
+        const inputResponsable = document.createElement('input');
+        inputResponsable.type = 'hidden';
+        inputResponsable.id = 'hidden_responsable';
+        inputResponsable.name = 'responsable_interno';
+        inputResponsable.value = selectColaborador.value; 
+        form.appendChild(inputResponsable);
+
+        const inputAccion = document.createElement('input');
+        inputAccion.type = 'hidden';
+        inputAccion.name = 'accion';
+        inputAccion.value = 'asignar_interno';
+        form.appendChild(inputAccion);
+
+        form.noValidate = true;
+        form.submit();
+    }
+</script>
+<!-- ESTILOS EXTRA -->
+<style>
+    .cursor-pointer { cursor: pointer; }
+    .border-dashed { border: 2px dashed #dee2e6; border-radius: 0.375rem; background-color: #f8f9fa; transition: all 0.3s; }
+    .border-dashed:hover { border-color: #0d6efd; background-color: #f0f8ff; }
+    .x-small { font-size: 0.7rem; }
+    textarea.form-control { resize: none; }
+    
+    /* Input file azul consistente */
+    input[type=file]::file-selector-button {
+        margin-right: 15px; border: none; background: #0d6efd; padding: 6px 12px; border-radius: 4px; color: #fff; cursor: pointer; font-size: 0.75rem; font-weight: bold;
+    }
+    input[type=file]::file-selector-button:hover { background: #0b5ed7; }
+</style>
+{% endblock %}

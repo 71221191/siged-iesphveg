@@ -1,0 +1,167 @@
+{% extends 'gestion/base.html' %}
+{% load static %}
+
+{% block title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-11">
+        
+        <!-- 1. ENCABEZADO (Estilo Unificado) -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3 border border-primary border-opacity-25">
+                <i class="bi bi-person-circle fs-2"></i>
+            </div>
+            <div>
+                <h2 class="h4 fw-bold mb-0 text-dark">Mi Perfil de Usuario</h2>
+                <p class="text-muted small mb-0">Gestión de identidad, datos de contacto y credenciales de acceso.</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            
+            <!-- COLUMNA IZQUIERDA: CREDENCIAL (Foto y Rol) -->
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body text-center p-4">
+                        
+                        <!-- Foto de Perfil -->
+                        <div class="position-relative d-inline-block mb-3">
+                            {% if user.perfilusuario.foto %}
+                                <img src="{{ user.perfilusuario.foto.url }}" 
+                                     class="rounded-circle shadow-sm border border-4 border-light" 
+                                     style="width: 160px; height: 160px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto border border-4 border-light"
+                                     style="width: 160px; height: 160px; font-size: 4rem;">
+                                    {{ user.username|slice:":1"|upper }}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Indicador de Estado -->
+                            <span class="position-absolute bottom-0 end-0 p-2 bg-success border border-light rounded-circle" title="Usuario Activo">
+                                <span class="visually-hidden">Activo</span>
+                            </span>
+                        </div>
+
+                        <!-- Nombre y Cargo -->
+                        <h5 class="fw-bold text-dark mb-1">{{ user.get_full_name|default:user.username }}</h5>
+                        <p class="text-primary fw-bold small mb-3">{{ user.perfilusuario.rol.nombre }}</p>
+                        
+                        <hr class="my-3 opacity-25">
+                        
+                        <div class="text-start">
+                            <div class="d-flex align-items-center mb-2 text-muted">
+                                <i class="bi bi-building me-3 fs-5"></i>
+                                <span class="small">{{ user.perfilusuario.unidad_organizativa }}</span>
+                            </div>
+                            <div class="d-flex align-items-center text-muted">
+                                <i class="bi bi-calendar-check me-3 fs-5"></i>
+                                <span class="small">Registrado el {{ user.date_joined|date:"d M, Y" }}</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLUMNA DERECHA: INFORMACIÓN Y EDICIÓN -->
+            <div class="col-md-8">
+                
+                <!-- TARJETA 1: DATOS INSTITUCIONALES (Solo Lectura) -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-shield-lock-fill me-2 text-secondary"></i>Datos Institucionales (Solo Lectura)</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-4">
+                            <div class="col-sm-6">
+                                <label class="small text-uppercase text-muted fw-bold mb-1">Usuario de Sistema</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-person-badge"></i></span>
+                                    <input type="text" class="form-control bg-light" value="{{ user.username }}" readonly>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="small text-uppercase text-muted fw-bold mb-1">Correo Institucional</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
+                                    <input type="text" class="form-control bg-light" value="{{ user.email }}" readonly>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="small text-uppercase text-muted fw-bold mb-1">Nombres</label>
+                                <input type="text" class="form-control bg-light" value="{{ user.first_name }}" readonly>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="small text-uppercase text-muted fw-bold mb-1">Apellidos</label>
+                                <input type="text" class="form-control bg-light" value="{{ user.last_name }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TARJETA 2: ACTUALIZAR CONTACTO (Editable) -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-pencil-square me-2"></i>Actualizar Datos de Contacto</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="post" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Número de Celular</label>
+                                    {{ form.celular }}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Foto de Perfil (Opcional)</label>
+                                    {{ form.foto }}
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end mt-4">
+                                <button type="submit" class="btn btn-primary fw-bold shadow-sm px-4">
+                                    <i class="bi bi-check-lg me-2"></i> Guardar Cambios
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TARJETA 3: SEGURIDAD -->
+                <div class="card shadow-sm border-0 border-start border-4 border-danger">
+                    <div class="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h6 class="fw-bold text-danger mb-1"><i class="bi bi-key-fill me-2"></i>Seguridad de la Cuenta</h6>
+                            <p class="text-muted small mb-0">Se recomienda cambiar su contraseña periódicamente.</p>
+                        </div>
+                        <a href="{% url 'password_change' %}" class="btn btn-outline-danger fw-bold">
+                            Cambiar Contraseña
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ESTILOS EXTRA -->
+<style>
+    /* Estilo para inputs de solo lectura que parezcan deshabilitados pero legibles */
+    .form-control[readonly] {
+        background-color: #f8f9fa;
+        color: #495057;
+        cursor: not-allowed;
+        border-color: #dee2e6;
+    }
+    
+    /* Input file personalizado */
+    input[type=file]::file-selector-button {
+        border: none; background: #e9ecef; padding: 6px 12px; border-radius: 4px; color: #495057; font-weight: bold; margin-right: 10px; transition: all 0.2s;
+    }
+    input[type=file]::file-selector-button:hover { background: #dee2e6; }
+</style>
+{% endblock %}

@@ -1,0 +1,33 @@
+<!-- gestion/templates/gestion/eliminar_documento.html -->
+
+{% extends 'gestion/base.html' %}
+
+{% block title %}
+    Confirmar Eliminación
+{% endblock %}
+
+{% block content %}
+<div class="card border-danger shadow-sm">
+    <div class="card-header bg-danger text-white">
+        <h2 class="h4 mb-0">Confirmar Eliminación</h2>
+    </div>
+    <div class="card-body">
+        <p class="fs-5">¿Estás seguro de que deseas eliminar permanentemente el siguiente documento?</p>
+        
+        <div class="alert alert-warning">
+            <p class="fw-bold mb-1">ID Expediente: {{ documento.expediente_id }}</p>
+            <p class="mb-0"><strong>Asunto:</strong> {{ documento.asunto }}</p>
+        </div>
+
+        <p class="text-muted">Esta acción no se puede deshacer.</p>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="text-end mt-4">
+                <a href="{% url 'detalle_documento' documento.expediente_id %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

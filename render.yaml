@@ -1,0 +1,31 @@
+databases:
+  - name: sgd-hveg-db
+    plan: free # El plan gratuito es perfecto para empezar
+    databaseName: sgd_hveg
+    user: sgd_hveg_user
+
+services:
+  - type: web
+    plan: free
+    name: sgd-iesp-hveg
+    runtime: python
+    buildCommand: "./build.sh"
+    # ¡OJO! Reemplacé 'mysite' con el nombre de nuestra carpeta de configuración
+    startCommand: "gunicorn sgd_project.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sgd-hveg-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true # Render generará una clave segura por nosotros
+      - key: WEB_CONCURRENCY
+        value: 4
+      # Le decimos a decouple que no busque un .env en producción
+      - key: PYTHON_DECOUPLE_RAISE_ERROR
+        value: "False"
+      # Añadimos nuestras variables de correo
+      - key: EMAIL_HOST_USER
+        value: "71221191@campus.iesphveg.edu.pe" # O usa sync: true para leerlo desde Render
+      - key: EMAIL_HOST_PASSWORD
+        value: "yknj sbur pfhu nplf" # O usa sync: true

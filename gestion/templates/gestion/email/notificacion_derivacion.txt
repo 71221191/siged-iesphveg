@@ -1,0 +1,16 @@
+Hola {{ nombre_destinatario }},
+Se te ha asignado un nuevo trámite en el Sistema de Gestión Documentaria del IESP HVEG.
+=====================================
+DETALLES DEL TRÁMITE
+N° Expediente: {{ documento.expediente_id }}
+Asunto: {{ documento.asunto }}
+Derivado por: {{ nombre_remitente }} ({{ unidad_remitente }})
+Fecha de Derivación: {{ fecha }}
+Observaciones: {{ observaciones }}
+=====================================
+Puedes acceder directamente al trámite a través del siguiente enlace:
+http://127.0.0.1:8000{% url 'detalle_documento' documento.expediente_id %}
+Por favor, atiende este trámite a la brevedad posible.
+Atentamente,
+Sistema de Gestión Documentaria
+IESP HVEG

@@ -1,0 +1,413 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Nuevo Expediente{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        
+        <!-- 1. ENCABEZADO (Estilo Anterior Recuperado) -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 me-3">
+                <i class="bi bi-folder-plus fs-2"></i>
+            </div>
+            <div>
+                <h2 class="h4 fw-bold mb-0 text-dark">Registrar Nuevo Expediente</h2>
+                <p class="text-muted small mb-0">Recepción y Validación de Requisitos</p>
+            </div>
+        </div>
+
+        <!-- Alerta Global de Errores -->
+        {% if form.errors %}
+        <div class="alert alert-danger shadow-sm border-danger border-start border-4 mb-4">
+            <h6 class="alert-heading fw-bold small"><i class="bi bi-exclamation-triangle-fill me-2"></i>Faltan datos obligatorios</h6>
+            <p class="mb-0 small">Revise los campos marcados en rojo.</p>
+        </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data" class="needs-validation" id="formRegistro" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-4">
+                
+                <!-- COLUMNA IZQUIERDA: FORMULARIO -->
+                <div class="col-md-7">
+                    
+                    <!-- TARJETA 1: DATOS DEL TRÁMITE -->
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-1-circle-fill me-2"></i>Datos del Trámite</h6>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">N° Expediente</label>
+                                    {{ form.expediente_id }}
+                                    <style> #id_expediente_id { background-color: #f8f9fa; font-weight: bold; color: #6c757d; pointer-events: none; border: 1px dashed #ced4da; } </style>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Trámite a Realizar <span class="text-danger">*</span></label>
+                                    {{ form.procedimiento }}
+                                    {% if form.procedimiento.errors %}
+                                        <div class="text-danger small mt-1 fw-bold">{{ form.procedimiento.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- DESTINO MANUAL -->
+                                <div class="col-12" id="divDestinoManual" style="display: none;">
+                                    <div class="alert alert-info py-2 mb-2 small border-info">
+                                        <i class="bi bi-shuffle me-2"></i> <strong>Seleccione destino:</strong>
+                                    </div>
+                                    <label class="form-label fw-bold">Área de Destino <span class="text-danger">*</span></label>
+                                    {{ form.destino_manual }}
+                                    {% if form.destino_manual.errors %}
+                                        <div class="text-danger small mt-1">{{ form.destino_manual.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold text-muted text-uppercase">Asunto Detallado <span class="text-danger">*</span></label>
+                                    {{ form.asunto }}
+                                    {% if form.asunto.errors %}
+                                        <div class="text-danger small mt-1">{{ form.asunto.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TARJETA 2: DATOS DEL SOLICITANTE -->
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-2-circle-fill me-2"></i>Solicitante</h6>
+                            
+                            {% if user.perfilusuario.rol.nombre != "Mesa de Partes" %}
+                            <div class="form-check form-switch">
+                                <input class="form-check-input cursor-pointer" type="checkbox" id="checkInterno" name="es_interno">
+                                <label class="form-check-label small fw-bold text-secondary cursor-pointer" for="checkInterno">Interno</label>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-body p-4 bg-light bg-opacity-25">
+                            <div class="row g-3">
+                                <div class="col-md-4 campo-externo">
+                                    <label class="form-label small fw-bold">Tipo <span class="text-danger">*</span></label>
+                                    {{ form.tipo_remitente }}
+                                </div>
+                                <div class="col-md-8 campo-externo">
+                                    <label class="form-label small fw-bold" id="label_identificador">DNI / RUC <span class="text-danger">*</span></label>
+                                    {{ form.identificador_remitente }}
+                                    <div id="errorDni" class="invalid-feedback fw-bold" style="display:none; font-size: 0.8rem;"></div>
+                                    {% if form.identificador_remitente.errors %}
+                                        <div class="text-danger small mt-1">{{ form.identificador_remitente.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-bold">Nombre / Razón Social <span class="text-danger">*</span></label>
+                                    {{ form.remitente }}
+                                    {% if form.remitente.errors %}
+                                        <div class="text-danger small mt-1">{{ form.remitente.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- COLUMNA DERECHA -->
+                <div class="col-md-5">
+                    
+                    <!-- TARJETA 3: REQUISITOS (Estilo Amarillo Recuperado) -->
+                    <div class="card shadow-sm border-warning mb-4">
+                        <div class="card-header bg-warning bg-opacity-10 text-dark py-3 border-bottom border-warning">
+                            <h6 class="mb-0 fw-bold"><i class="bi bi-list-check me-2"></i>Requisitos TUPA</h6>
+                        </div>
+                        <div class="card-body p-4">
+                            
+                            <div id="msgSeleccioneTramite" class="text-center text-muted py-3">
+                                <i class="bi bi-arrow-left-circle fs-2 d-block mb-2 text-warning opacity-50"></i>
+                                <small>Seleccione un trámite a la izquierda.</small>
+                            </div>
+
+                            <div id="listaRequisitos" class="list-group list-group-flush mb-3" style="display:none;"></div>
+
+                            <div id="alertaBloqueo" class="alert alert-danger d-flex align-items-center small py-2 mb-0 border-danger" style="display:none;">
+                                <i class="bi bi-lock-fill me-2 fs-5"></i>
+                                <div>Debe validar <strong>todos</strong> los requisitos para continuar.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TARJETA 4: ARCHIVO DIGITAL (Estilo Recuperado) -->
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-white py-3">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-3-circle-fill me-2"></i>Archivo Digital</h6>
+                        </div>
+                        <div class="card-body p-4 text-center border-dashed">
+                            <i class="bi bi-cloud-arrow-up text-primary fs-1 mb-2"></i>
+                            <p class="small text-muted mb-3">Adjuntar PDF único (Solicitud + Requisitos) <span class="text-danger">*</span></p>
+                            {{ form.archivo_adjunto }}
+                            {% if form.archivo_adjunto.errors %}
+                                <div class="alert alert-danger mt-2 py-1 small mb-0">{{ form.archivo_adjunto.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- ACCIONES -->
+                    <div class="d-grid gap-2 sticky-top" style="top: 20px; z-index: 10;">
+                        <!-- Mensaje flotante -->
+                        <div id="msgFaltanDatos" class="alert alert-warning text-center small py-1 mb-2 shadow-sm border-warning" style="display:none;">
+                            <strong><i class="bi bi-exclamation-triangle me-1"></i> Atención:</strong> Complete los campos obligatorios (*).
+                        </div>
+
+                        <!-- BOTÓN CELESTE/AZUL (Mismo color que títulos) -->
+                        <button type="submit" id="btnRegistrar" class="btn btn-primary btn-lg fw-bold shadow-sm" disabled>
+                            <i class="bi bi-send-check-fill me-2"></i> Registrar y Derivar
+                        </button>
+                        
+                        <a href="{% url 'lista_documentos' %}" class="btn btn-outline-secondary btn-sm border-0">
+                            Cancelar y Volver
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DATA JSON -->
+<script id="data-requisitos" type="application/json">
+    {{ json_requisitos|safe }}
+</script>
+
+<!-- ESTILOS EXTRA -->
+<style>
+    .border-dashed { border: 2px dashed #dee2e6; border-radius: 0.375rem; background-color: #f8f9fa; transition: all 0.3s; }
+    .border-dashed:hover { border-color: #0d6efd; background-color: #f0f8ff; }
+    
+    /* Input file personalizado azul */
+    input[type=file]::file-selector-button {
+        margin-right: 15px; border: none; background: #0d6efd; padding: 8px 15px; border-radius: 4px; color: #fff; cursor: pointer; font-size: 0.8rem; font-weight: bold;
+    }
+    input[type=file]::file-selector-button:hover { background: #0b5ed7; }
+</style>
+
+<!-- LÓGICA JAVASCRIPT -->
+<!-- SCRIPT LÓGICA COMPLETA: CHECKLIST + DESTINO + VALIDACIÓN DNI -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- 1. REFERENCIAS AL DOM ---
+        const dataRequisitos = JSON.parse(document.getElementById('data-requisitos').textContent);
+        const selectProcedimiento = document.getElementById('id_procedimiento');
+        const listaReqsContainer = document.getElementById('listaRequisitos');
+        const msgInicial = document.getElementById('msgSeleccioneTramite');
+        const alertaBloqueo = document.getElementById('alertaBloqueo');
+        const btnRegistrar = document.getElementById('btnRegistrar');
+        const msgFaltanDatos = document.getElementById('msgFaltanDatos');
+        
+        // Elementos Remitente / Interno
+        const checkInterno = document.getElementById('checkInterno');
+        const divDestino = document.getElementById('divDestinoManual');
+        const camposExternos = document.querySelectorAll('.campo-externo');
+        const inputRemitente = document.getElementById('id_remitente');
+        const unidadUsuario = "{{ user.perfilusuario.unidad_organizativa }}";
+
+        // Elementos Validación DNI
+        const selectTipo = document.getElementById('id_tipo_remitente');
+        const inputIdentificador = document.getElementById('id_identificador_remitente');
+        const labelIdentificador = document.getElementById('label_identificador');
+        const errorDni = document.getElementById('errorDni');
+
+        // =========================================================
+        // A. VALIDACIÓN ESTRICTA DNI/RUC (NUEVO)
+        // =========================================================
+        function validarLongitud() {
+            // Si es interno, no validamos nada
+            if (checkInterno && checkInterno.checked) {
+                inputIdentificador.classList.remove('is-invalid', 'is-valid');
+                if(errorDni) errorDni.style.display = 'none';
+                return true;
+            }
+
+            const valor = inputIdentificador.value;
+            const tipo = selectTipo.value;
+            let valido = true;
+            let mensaje = "";
+
+            if (tipo === 'PN') { // DNI
+                if (valor.length > 0 && valor.length !== 8) {
+                    valido = false;
+                    mensaje = "El DNI debe tener 8 dígitos.";
+                }
+            } else if (tipo === 'PJ') { // RUC
+                if (valor.length > 0 && valor.length !== 11) {
+                    valido = false;
+                    mensaje = "El RUC debe tener 11 dígitos.";
+                }
+            }
+
+            // Aplicar estilos visuales (Rojo/Verde)
+            if (!valido) {
+                inputIdentificador.classList.add('is-invalid');
+                inputIdentificador.classList.remove('is-valid');
+                if(errorDni) {
+                    errorDni.style.display = 'block';
+                    errorDni.textContent = mensaje;
+                }
+                return false;
+            } else {
+                inputIdentificador.classList.remove('is-invalid');
+                if (valor.length > 0) {
+                    inputIdentificador.classList.add('is-valid');
+                } else {
+                    inputIdentificador.classList.remove('is-valid'); // Vacío no es válido ni inválido visualmente
+                }
+                if(errorDni) errorDni.style.display = 'none';
+                return true;
+            }
+        }
+
+        // =========================================================
+        // B. CHECKLIST DINÁMICO
+        // =========================================================
+        function actualizarRequisitos() {
+            const procId = selectProcedimiento.value;
+            listaReqsContainer.innerHTML = '';
+            
+            if (!procId) {
+                msgInicial.style.display = 'block';
+                listaReqsContainer.style.display = 'none';
+                alertaBloqueo.style.display = 'none';
+                btnRegistrar.disabled = true;
+                return;
+            }
+
+            const requisitos = dataRequisitos[procId] || [];
+            
+            if (requisitos.length > 0) {
+                msgInicial.style.display = 'none';
+                listaReqsContainer.style.display = 'block';
+                alertaBloqueo.style.display = 'flex';
+                btnRegistrar.disabled = true;
+
+                requisitos.forEach((req, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'form-check mb-2 d-flex align-items-center';
+                    div.innerHTML = `
+                        <input class="form-check-input req-checkbox me-2" type="checkbox" id="req_${index}" style="cursor:pointer; width: 1.3em; height: 1.3em;">
+                        <label class="form-check-label small user-select-none text-dark" for="req_${index}" style="cursor:pointer;">
+                            ${req}
+                        </label>
+                    `;
+                    listaReqsContainer.appendChild(div);
+                });
+
+                document.querySelectorAll('.req-checkbox').forEach(ch => ch.addEventListener('change', validarTodoMarcado));
+
+            } else {
+                msgInicial.style.display = 'none';
+                listaReqsContainer.innerHTML = '<div class="alert alert-success small mb-0"><i class="bi bi-check-circle-fill me-2"></i>Sin requisitos previos.</div>';
+                listaReqsContainer.style.display = 'block';
+                alertaBloqueo.style.display = 'none';
+                btnRegistrar.disabled = false;
+            }
+            verificarDestinoManual();
+        }
+
+        function validarTodoMarcado() {
+            const checks = document.querySelectorAll('.req-checkbox');
+            let todos = true;
+            checks.forEach(c => { if(!c.checked) todos = false; });
+
+            if (todos) {
+                btnRegistrar.disabled = false;
+                alertaBloqueo.style.display = 'none';
+                msgFaltanDatos.style.display = 'none';
+            } else {
+                btnRegistrar.disabled = true;
+                alertaBloqueo.style.display = 'flex';
+            }
+        }
+
+        // =========================================================
+        // C. MODO INTERNO Y DESTINO
+        // =========================================================
+        function verificarDestinoManual() {
+            if (!selectProcedimiento) return;
+            const textoProc = selectProcedimiento.options[selectProcedimiento.selectedIndex].text;
+            const esGenerico = textoProc.includes("No TUPA") || textoProc.includes("Genérico") || textoProc.includes("GEN-001");
+
+            // Solo mostrar si es el trámite genérico (sin importar si es interno o no)
+            if (esGenerico) {
+                divDestino.style.display = 'block';
+            } else {
+                divDestino.style.display = 'none';
+            }
+        }
+
+        function configurarModoInterno() {
+            inputIdentificador.classList.remove('is-valid', 'is-invalid'); // Limpiar validaciones
+            if(errorDni) errorDni.style.display = 'none';
+
+            if (checkInterno && checkInterno.checked) {
+                camposExternos.forEach(el => el.style.display = 'none');
+                inputRemitente.value = unidadUsuario; 
+                inputRemitente.readOnly = true; 
+                inputIdentificador.value = ''; // Limpiar DNI al ser interno
+            } else {
+                camposExternos.forEach(el => el.style.display = 'block');
+                if(inputRemitente.value === unidadUsuario) inputRemitente.value = ''; 
+                inputRemitente.readOnly = false;
+                configurarLabelsDNI(); // Restaurar textos
+            }
+            verificarDestinoManual();
+        }
+
+        function configurarLabelsDNI() {
+            const tipo = selectTipo.value;
+            inputIdentificador.value = inputIdentificador.value.replace(/[^0-9]/g, ''); // Limpiar no numéricos
+            
+            if (tipo === 'PN') {
+                labelIdentificador.innerHTML = "DNI (8 dígitos) <span class='text-danger'>*</span>";
+                inputIdentificador.setAttribute('maxlength', '8');
+                inputIdentificador.setAttribute('placeholder', 'Ej: 71221191');
+            } else if (tipo === 'PJ') {
+                labelIdentificador.innerHTML = "RUC (11 dígitos) <span class='text-danger'>*</span>";
+                inputIdentificador.setAttribute('maxlength', '11');
+                inputIdentificador.setAttribute('placeholder', 'Ej: 20123456789');
+            }
+            validarLongitud(); // Re-validar lo que haya escrito
+        }
+
+        // --- LISTENERS ---
+        selectProcedimiento.addEventListener('change', actualizarRequisitos);
+        if (checkInterno) checkInterno.addEventListener('change', configurarModoInterno);
+        
+        selectTipo.addEventListener('change', configurarLabelsDNI);
+        
+        inputIdentificador.addEventListener('input', function(e) { 
+            this.value = this.value.replace(/[^0-9]/g, ''); // Solo números
+            validarLongitud(); // Validación tiempo real
+        });
+
+        // --- INICIALIZACIÓN ---
+        actualizarRequisitos();
+        if (checkInterno) configurarModoInterno();
+        configurarLabelsDNI();
+
+        // Validación final al enviar
+        const form = document.getElementById('formRegistro');
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity() || !validarLongitud()) { // Checkeamos longitud también aquí
+                event.preventDefault();
+                event.stopPropagation();
+                msgFaltanDatos.style.display = 'block';
+            }
+            form.classList.add('was-validated');
+        });
+    });
+</script>
+{% endblock %}

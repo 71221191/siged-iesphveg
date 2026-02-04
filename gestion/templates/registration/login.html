@@ -1,0 +1,59 @@
+{% extends 'gestion/base.html' %}
+
+{% load static %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 col-lg-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+
+                <!-- INICIO: SECCIÓN DEL LOGO -->
+                <div class="text-center mb-4">
+                    {# Asegúrate de que tu logo esté en: static/gestion/images/logo_iesp.png #}
+                    <img src="{% static 'gestion/images/logo_iesp_hveg.png' %}" 
+                         alt="Logo IESP HVEG" 
+                         class="img-fluid" 
+                         style="max-height: 90px; margin-bottom: 1rem;">
+                    
+                    <h1 class="h3 mb-1 fw-normal">Iniciar Sesión</h1>
+                    <p class="text-muted">Sistema de Gestión Documentaria</p>
+                </div>
+                <!-- FIN: SECCIÓN DEL LOGO -->
+
+                {% if form.errors %}
+                    <div class="alert alert-danger" role="alert">
+                        Tu usuario y contraseña no coinciden. Por favor, inténtalo de nuevo.
+                    </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="form-floating mb-3">
+                        <input type="text" name="username" class="form-control" id="id_username" placeholder="Usuario" autofocus required>
+                        <label for="id_username">Nombre de Usuario</label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="password" name="password" class="form-control" id="id_password" placeholder="Contraseña" required>
+                        <label for="id_password">Contraseña</label>
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">Ingresar</button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="mb-1">¿Necesitas ver el estado de un trámite?</p>
+                    {# Asegúrate de que el nombre de tu URL de consulta sea 'consulta_expediente' #}
+                    <a href="{% url 'consulta_expediente' %}">Haz clic aquí para consultarlo</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

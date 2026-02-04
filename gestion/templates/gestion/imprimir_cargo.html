@@ -1,0 +1,147 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Cargo {{ documento.expediente_id }}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 40px;
+            color: #000;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        .header img {
+            height: 80px;
+        }
+        .titulo {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .subtitulo {
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .expediente-box {
+            border: 2px solid #000;
+            padding: 15px;
+            text-align: center;
+            margin: 20px auto;
+            width: 50%;
+            font-size: 20px;
+            font-weight: bold;
+            background-color: #f0f0f0;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .info-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+            vertical-align: top;
+        }
+        .label {
+            font-weight: bold;
+            width: 180px;
+        }
+        .footer {
+            margin-top: 50px;
+            font-size: 12px;
+            text-align: center;
+            border-top: 1px solid #000;
+            padding-top: 10px;
+        }
+        /* Esto hace que al imprimir se oculte el botón */
+        @media print {
+            .no-print { display: none; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body onload="window.print()"> <!-- Se abre la ventana de imprimir automáticamente -->
+
+    <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">🖨️ Imprimir</button>
+        <button onclick="window.close()" style="padding: 10px 20px; cursor: pointer;">Cerrar</button>
+    </div>
+
+    <div class="header">
+        <!-- Ajusta la ruta de tu logo si es necesario -->
+        <img src="{% static 'gestion/images/logo_iesp_hveg.png' %}" alt="Logo IESP">
+        <h3>IESP "Hno. Victorino Elorz Goicoechea"</h3>
+        <p>Cajamarca - Perú</p>
+    </div>
+
+    <div class="titulo">CARGO DE RECEPCIÓN</div>
+    <div class="subtitulo">SISTEMA DE GESTIÓN DOCUMENTARIA</div>
+
+    <div class="expediente-box">
+        EXPEDIENTE N°: {{ documento.expediente_id }}
+    </div>
+
+    <div style="text-align: center; margin: 10px 0; padding: 10px; border: 1px dashed #000;">
+        <span style="font-size: 14px;">Clave de Acceso Web:</span><br>
+        <span style="font-size: 24px; font-family: 'Courier New', monospace; letter-spacing: 5px; font-weight: bold;">
+            {{ documento.clave_seguridad }}
+        </span>
+        <br>
+        <small>Use esta clave o su DNI para consultar el estado en la web.</small>
+    </div>
+
+    <table class="info-table">
+        <tr>
+            <td class="label">Fecha de Recepción:</td>
+            <td>{{ documento.fecha_ingreso|date:"d/m/Y - h:i A" }}</td>
+        </tr>
+        <tr>
+            <td class="label">Trámite Solicitado:</td>
+            <td>{{ documento.procedimiento.nombre }}</td>
+        </tr>
+        <tr>
+            <td class="label">Solicitante:</td>
+            <td>
+                {{ documento.remitente }}<br>
+                <small>DOC: {{ documento.identificador_remitente }}</small>
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Asunto:</td>
+            <td>{{ documento.asunto }}</td>
+        </tr>
+        <tr>
+            <td class="label">Recepcionado por:</td>
+            <td>
+                {{ documento.movimiento_set.first.usuario_origen.usuario.get_full_name }}<br>
+                ({{ documento.movimiento_set.first.usuario_origen.unidad_organizativa }})
+            </td>
+        </tr>
+    </table>
+
+    <!-- SECCIÓN QR -->
+    <div style="margin-top: 20px; text-align: center; border-top: 1px dashed #ccc; padding-top: 15px;">
+        <strong>Nota para el usuario:</strong><br>
+        <em>Plazo máximo estimado de atención: {{ documento.procedimiento.plazo_dias_habiles }} días hábiles.</em>
+        <p style="font-size: 10px; margin-bottom: 5px;">Puede consultar el estado de su trámite en nuestro portal web ingresando su N° de Expediente y su DNI/RUC.</p>
+        <p style="font-size: 10px; margin-bottom: 5px;">Escanee este código para seguimiento en tiempo real:</p>
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Seguimiento" style="width: 100px; height: 100px;">
+        <p style="font-size: 9px; margin-top: 5px; color: #555;">{{ url_texto }}</p>
+    </div>
+
+    <div class="footer">
+        Impreso el {{ fecha_impresion|date:"d/m/Y H:i" }} por {{ usuario_impresion }}<br>
+        Sistema de Gestión Documentaria - IESP HVEG
+    </div>
+
+</body>
+</html>

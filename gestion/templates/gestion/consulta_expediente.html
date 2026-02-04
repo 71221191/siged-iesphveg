@@ -1,0 +1,354 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Consulta de Trámite - IESP HVEG{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        
+        <!-- 1. BUSCADOR (Diseño Limpio) -->
+        <div class="card shadow-sm border-0 mb-4" style="border-top: 5px solid #0d6efd !important;">
+            <div class="card-body p-4 text-center">
+                <h2 class="h4 text-primary fw-bold mb-2">
+                    <i class="bi bi-search me-2"></i>Seguimiento de Expedientes
+                </h2>
+                <p class="text-muted mb-4 small">Consulte el estado y la ubicación de sus documentos en tiempo real.</p>
+                
+                <form method="get" class="row g-2 justify-content-center">
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="expId" name="expediente_id" value="{{ expediente_query|default:'' }}" placeholder="EXP" required>
+                            <label for="expId">N° Expediente</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="ident" name="identificador" value="{{ identificador_query|default:'' }}" placeholder="DNI" required>
+                            <label for="ident">DNI / RUC o Clave Web</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary w-100 h-100 fw-bold shadow-sm">
+                            RASTREAR <i class="bi bi-arrow-right ms-1"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 2. RESULTADOS -->
+        {% if 'expediente_id' in request.GET %}
+            {% if documento %}
+                
+                <!-- TARJETA DE RESUMEN -->
+                <div class="card shadow border-0 mb-4 overflow-hidden">
+                    <!-- Barra de estado superior -->
+                    <div class="card-header border-0 py-3 d-flex justify-content-between align-items-center
+                        {% if documento.estado == 'atendido' %}bg-success text-white
+                        {% elif documento.estado == 'archivado' %}bg-secondary text-white
+                        {% elif documento.estado == 'observado' %}bg-danger text-white
+                        {% else %}bg-primary text-white{% endif %}">
+                        
+                        <span class="fw-bold"><i class="bi bi-folder2-open me-2"></i>{{ documento.expediente_id }}</span>
+                        <span class="badge bg-white bg-opacity-25 border border-white border-opacity-50">
+                            {{ documento.get_estado_display|upper }}
+                        </span>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="row align-items-center mb-4">
+                            <div class="col-md-8">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Trámite</small>
+                                <h4 class="fw-bold text-dark mb-1">{{ documento.procedimiento.nombre }}</h4>
+                                <p class="text-muted mb-0 small">{{ documento.procedimiento.codigo }}</p>
+                            </div>
+                            <div class="col-md-4 text-md-end border-start ps-4 mt-3 mt-md-0">
+                                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Tiempo Transcurrido</small>
+                                <div class="fs-5 fw-bold text-primary">
+                                    <i class="bi bi-clock-history me-1"></i> {{ tiempo_total_str }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BARRA DE PROGRESO O MENSAJE DE CANCELACIÓN -->
+
+                        {% if documento.estado == 'archivado' %}
+                            <!-- CASO 1: CANCELADO / ARCHIVADO (Gris) -->
+                            <div class="alert alert-secondary d-flex align-items-center mt-3 border-0 bg-secondary bg-opacity-10 text-dark">
+                                <i class="bi bi-x-octagon-fill fs-2 me-3 text-secondary"></i>
+                                <div>
+                                    <strong>Trámite Cancelado / Anulado</strong>
+                                    <p class="mb-0 small">El proceso se detuvo y el expediente fue archivado sin finalizar.</p>
+                                </div>
+                            </div>
+
+                        {% elif pasos %}
+                            <!-- CASO 2: ACTIVO O FINALIZADO (Muestra Barra) -->
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between small fw-bold mb-1">
+                                    <span>Progreso Estimado</span>
+                                    {% if documento.estado == 'atendido' %}
+                                        <span class="text-success">100%</span>
+                                    {% else %}
+                                        <span class="text-primary">En curso</span>
+                                    {% endif %}
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    {% if documento.estado == 'atendido' %}
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
+                                    {% else %}
+                                        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" role="progressbar" 
+                                            style="width: calc(({{ documento.paso_actual }} / {{ pasos|length }}) * 100%)"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Botón Descarga -->
+                        {% if documento.estado == 'atendido' %}
+                            {% with ultimo_mov=documento.movimiento_set.last %}
+                                {% if ultimo_mov.archivo_adjunto %}
+                                    <div class="alert alert-success d-flex align-items-center mt-4 mb-0 border-0 bg-success bg-opacity-10">
+                                        <i class="bi bi-check-circle-fill fs-3 me-3 text-success"></i>
+                                        <div class="flex-grow-1">
+                                            <h6 class="fw-bold mb-1 text-success">¡Trámite Finalizado!</h6>
+                                            <p class="mb-0 small text-dark">Su documento ha sido emitido.</p>
+                                        </div>
+                                        <a href="{{ ultimo_mov.archivo_adjunto.url }}" target="_blank" class="btn btn-success fw-bold shadow-sm">
+                                            <i class="bi bi-download me-2"></i> Descargar
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            {% endwith %}
+                        {% elif documento.estado == 'observado' %}
+                            <!-- CASO 1: Observado en Mesa de Partes (Culpa del Alumno probablemente) -->
+                            {% if documento.responsable_actual.unidad_organizativa == "Mesa de Partes" %}
+                                <div class="alert alert-danger mt-4 mb-0 d-flex align-items-center shadow-sm">
+                                    <i class="bi bi-exclamation-triangle-fill fs-3 me-3"></i>
+                                    <div>
+                                        <strong>Requiere Atención del Solicitante</strong>
+                                        <p class="mb-0 small">El expediente ha sido retornado a Mesa de Partes. Por favor, acérquese para subsanar los requisitos.</p>
+                                    </div>
+                                </div>
+                            
+                            <!-- CASO 2: Observado Internamente (Culpa de la oficina) -->
+                            {% else %}
+                                <div class="alert alert-warning mt-4 mb-0 d-flex align-items-center shadow-sm bg-warning bg-opacity-10 border-warning text-dark">
+                                    <i class="bi bi-arrow-counterclockwise fs-3 me-3"></i>
+                                    <div>
+                                        <strong>Revisión Interna Adicional</strong>
+                                        <p class="mb-0 small">El documento ha retornado a una etapa anterior para ajustes administrativos internos. No requiere su presencia.</p>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% elif documento.estado == 'externo' %}
+                            <div class="alert alert-info mt-4 mb-0 d-flex align-items-center shadow-sm border-info border-start border-4">
+                                <i class="bi bi-info-circle-fill fs-3 me-3"></i>
+                                <div>
+                                    <strong>Trámite en Gestión Externa</strong>
+                                    <p class="mb-0 small">El expediente ha sido enviado a una entidad superior (MINEDU/DRE) para su atención. El plazo está pausado hasta su retorno.</p>
+                                </div>
+                            </div>
+
+                        {% else %}
+                        {% endif %}
+
+                    </div>
+                </div>
+
+                <!-- 3. RUTA DEL TRÁMITE (STEPPER PRO) -->
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-map-fill me-2 text-primary"></i>Ruta del Expediente</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        {% if pasos %}
+                            <!-- RUTA FIJA (TUPA) -->
+                            <div class="stepper">
+                                {% for paso in pasos %}
+                                    <!-- LÓGICA DE CLASES CSS -->
+                                    <div class="step-item 
+                                        {% if documento.estado == 'atendido' %}
+                                            completed
+                                        {% elif paso.orden < documento.paso_actual %}
+                                            completed
+                                        {% elif paso.orden == documento.paso_actual %}
+                                            active
+                                        {% endif %}">
+                                        
+                                        <!-- CÍRCULO / ICONO -->
+                                        <div class="step-icon">
+                                            {% if documento.estado == 'atendido' or paso.orden < documento.paso_actual %}
+                                                <i class="bi bi-check-lg"></i>
+                                            {% elif paso.orden == documento.paso_actual %}
+                                                <div class="spinner-grow spinner-grow-sm" role="status"></div>
+                                            {% else %}
+                                                <span class="small">{{ paso.orden }}</span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- CONTENIDO -->
+                                        <div class="step-content">
+                                            <h6 class="fw-bold mb-0 text-dark">{{ paso.rol_responsable.nombre }}</h6>
+                                            <p class="text-muted small mb-0">{{ paso.descripcion }}</p>
+                                            
+                                            <!-- ETIQUETA DE UBICACIÓN -->
+                                            {% if paso.orden == documento.paso_actual and documento.estado != 'atendido' %}
+                                                <div class="mt-2">
+                                                    <span class="badge bg-primary shadow-sm">
+                                                        <i class="bi bi-geo-alt-fill me-1"></i> Ubicación Actual
+                                                    </span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                        {% else %}
+
+                            {% for mov in movimientos %}
+                                {% if "DESVÍO" in mov.observaciones or "Ruta modificada" in mov.observaciones %}
+                                    <div class="alert alert-warning border-warning bg-warning bg-opacity-10 d-flex align-items-center mb-4">
+                                        <i class="bi bi-shuffle fs-3 me-3 text-warning"></i>
+                                        <div>
+                                            <strong>Ruta Modificada</strong>
+                                            <p class="mb-0 small">El expediente ha sido derivado a un área no contemplada en el flujo original por necesidades administrativas. El proceso continúa.</p>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            <!-- RUTA DINÁMICA (GEN-001) -->
+                            <!-- Aquí mostramos el historial real porque no hay pasos futuros definidos -->
+                            <div class="stepper">
+                                {% for mov in movimientos %}
+                                    <div class="step-item completed">
+                                        <div class="step-icon"><i class="bi bi-check"></i></div>
+                                        <div class="step-content">
+                                            <h6 class="fw-bold mb-0">{{ mov.usuario_origen.unidad_organizativa }}</h6>
+                                            <p class="text-muted small mb-0">Envío / Derivación</p>
+                                            <small class="text-secondary" style="font-size: 0.7rem;">{{ mov.fecha_movimiento|date:"d M Y, h:i A" }}</small>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                
+                                <!-- Estado actual dinámico -->
+                                {% if documento.estado != 'atendido' %}
+                                <div class="step-item active">
+                                    <div class="step-icon"><div class="spinner-grow spinner-grow-sm"></div></div>
+                                    <div class="step-content">
+                                        <h6 class="fw-bold mb-0 text-primary">{{ documento.responsable_actual.unidad_organizativa }}</h6>
+                                        <span class="badge bg-primary mt-1">📍 En gestión actual</span>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+
+            {% elif error %}
+                <div class="alert alert-danger shadow text-center p-5 mt-4 border-0 rounded-3">
+                    <i class="bi bi-search fs-1 mb-3 text-danger opacity-50"></i>
+                    <h4 class="fw-bold">No encontramos ese expediente</h4>
+                    <p class="text-muted">{{ error }}</p>
+                    <a href="{% url 'consulta_expediente' %}" class="btn btn-light mt-3 border">Intentar otra búsqueda</a>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- ESTILOS CSS "PREMIUM" -->
+<style>
+    /* Contenedor */
+    .stepper {
+        position: relative;
+        padding-left: 20px;
+    }
+
+    /* Cada Paso */
+    .step-item {
+        position: relative;
+        padding-left: 50px;
+        padding-bottom: 40px;
+    }
+    .step-item:last-child {
+        padding-bottom: 0;
+        border-left: none;
+    }
+
+    /* Línea Vertical (Gris por defecto) */
+    .step-item::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 20px; /* Centrado con el icono */
+        width: 2px;
+        height: 100%;
+        background-color: #e9ecef;
+        z-index: 1;
+    }
+    .step-item:last-child::before {
+        display: none;
+    }
+
+    /* Línea Vertical (Verde cuando está completado) */
+    .step-item.completed::before {
+        background-color: #198754;
+    }
+
+    /* Icono (Círculo) */
+    .step-icon {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #fff;
+        border: 2px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+        color: #6c757d;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    /* Estilo Completado */
+    .step-item.completed .step-icon {
+        background-color: #198754;
+        border-color: #198754;
+        color: #fff;
+        box-shadow: 0 0 0 4px rgba(25, 135, 84, 0.1);
+    }
+
+    /* Estilo Activo (Pulse) */
+    .step-item.active .step-icon {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+        box-shadow: 0 0 0 5px rgba(13, 110, 253, 0.2);
+        animation: pulse-blue 2s infinite;
+    }
+    
+    .step-item.active .step-content h6 {
+        color: #0d6efd !important;
+    }
+
+    /* Animación de latido */
+    @keyframes pulse-blue {
+        0% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(13, 110, 253, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
+    }
+
+    /* Ajuste de formulario flotante */
+    .form-floating > label { padding-left: 1rem; }
+    .form-floating > .form-control { height: 3.5rem; }
+</style>
+{% endblock %}

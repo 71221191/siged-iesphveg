@@ -1,0 +1,27 @@
+{% extends 'gestion/base.html' %}
+{% block title %}Mis Notificaciones{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h4 class="text-primary mb-0"><i class="bi bi-bell"></i> Historial de Notificaciones</h4>
+    </div>
+    <div class="list-group list-group-flush">
+        {% for notif in notificaciones %}
+            <a href="{{ notif.enlace|default:'#' }}" class="list-group-item list-group-item-action {% if not notif.leida %}bg-light fw-bold{% endif %}">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ notif.mensaje }}</h6>
+                    <small class="text-muted">{{ notif.fecha_creacion|date:"d/m/Y H:i" }}</small>
+                </div>
+                {% if not notif.leida %}
+                    <small class="text-primary"><i class="bi bi-circle-fill" style="font-size: 8px;"></i> No leída</small>
+                {% else %}
+                    <small class="text-muted"><i class="bi bi-check2-all"></i> Leída</small>
+                {% endif %}
+            </a>
+        {% empty %}
+            <div class="p-4 text-center text-muted">No tienes notificaciones registradas.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

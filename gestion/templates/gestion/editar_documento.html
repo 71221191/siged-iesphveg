@@ -1,0 +1,212 @@
+{% extends 'gestion/base.html' %}
+
+{% block title %}Editar Expediente{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        
+        <!-- ENCABEZADO -->
+        <div class="d-flex align-items-center mb-4">
+            <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-3 me-3">
+                <i class="bi bi-pencil-square fs-2"></i>
+            </div>
+            <div>
+                <h2 class="h4 fw-bold mb-0 text-dark">Corregir Datos del Expediente</h2>
+                <p class="text-muted small mb-0">
+                    Editando el expediente <span class="fw-bold text-dark">{{ documento.expediente_id }}</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- ALERTA DE AUDITORÍA -->
+        <div class="alert alert-warning d-flex align-items-center mb-4 shadow-sm border-0 border-start border-4 border-warning" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+            <div>
+                <strong>Nota de Auditoría:</strong>
+                <span class="small d-block">Todos los cambios realizados en este formulario quedarán registrados en el historial de auditoría del sistema. Modifique solo si es estrictamente necesario.</span>
+            </div>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="row g-4">
+                
+                <!-- SECCIÓN 1: DATOS ESTRUCTURALES (Visualmente bloqueados) -->
+                <div class="col-md-12">
+                    <div class="card border-0 shadow-sm bg-light">
+                        <div class="card-body p-4">
+                            <h6 class="fw-bold text-muted text-uppercase small mb-3"><i class="bi bi-hdd-network me-2"></i>Datos del Sistema</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">N° Expediente</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-hash"></i></span>
+                                        {{ form.expediente_id }}
+                                    </div>
+                                    <!-- Forzamos estilo de lectura aunque el form lo permita -->
+                                    <style>#id_expediente_id { background-color: #e9ecef; pointer-events: none; }</style>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold small">Trámite (MPI)</label>
+                                    {{ form.procedimiento }}
+                                    <style>#id_procedimiento { background-color: #e9ecef; pointer-events: none; }</style>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 2: DATOS DEL SOLICITANTE (Editables) -->
+                <div class="col-md-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-person-vcard me-2"></i>Datos del Solicitante / Remitente</h6>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">Tipo de Persona</label>
+                                    {{ form.tipo_remitente }}
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold small" id="label_identificador">DNI / RUC</label>
+                                    {{ form.identificador_remitente }}
+                                    <div class="form-text small">Si es trámite interno, deje este campo vacío.</div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold small">Nombre o Razón Social</label>
+                                    {{ form.remitente }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN 3: CONTENIDO Y ARCHIVOS -->
+                <div class="col-md-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-file-earmark-text me-2"></i>Contenido del Expediente</h6>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold small">Asunto Detallado</label>
+                                {{ form.asunto }}
+                            </div>
+
+                            <div class="bg-light p-3 rounded border border-dashed">
+                                <label class="form-label fw-bold small d-block mb-2">Archivo Digital (PDF)</label>
+                                
+                                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                    {% if documento.archivo_adjunto %}
+                                        <div class="d-flex align-items-center text-success">
+                                            <i class="bi bi-file-earmark-check-fill fs-3 me-2"></i>
+                                            <div>
+                                                <span class="d-block fw-bold small">Archivo actual cargado</span>
+                                                <a href="{{ documento.archivo_adjunto.url }}" target="_blank" class="small text-decoration-none">
+                                                    Ver documento actual
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="text-muted small">No hay archivo adjunto.</div>
+                                    {% endif %}
+
+                                    <div class="flex-grow-1" style="max-width: 400px;">
+                                        {{ form.archivo_adjunto }}
+                                        <div class="form-text x-small mt-1">Suba un archivo solo si desea <strong>reemplazar</strong> el actual.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- BOTONES -->
+            <div class="d-flex justify-content-end gap-3 mt-4 mb-5">
+                <a href="{% url 'detalle_documento' documento.expediente_id %}" class="btn btn-light border px-4">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                    <i class="bi bi-save me-2"></i> Guardar Cambios
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<!-- SCRIPT DE VALIDACIÓN (Igual al de Crear, para mantener consistencia) -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectTipo = document.getElementById('id_tipo_remitente');
+        const inputIdentificador = document.getElementById('id_identificador_remitente');
+        const labelIdentificador = document.getElementById('label_identificador');
+        const errorDni = document.getElementById('errorDni'); // Asegúrate de agregar el DIV en el HTML de editar también
+
+        function validarLongitud() {
+            const valor = inputIdentificador.value;
+            const tipo = selectTipo.value;
+            let valido = true;
+            let mensaje = "";
+
+            // Si está vacío en editar, asumimos que puede ser interno, pero si escribe, validamos.
+            if (valor.length === 0) return; 
+
+            if (tipo === 'PN' && valor.length !== 8) {
+                valido = false; mensaje = "El DNI debe tener 8 dígitos.";
+            } else if (tipo === 'PJ' && valor.length !== 11) {
+                valido = false; mensaje = "El RUC debe tener 11 dígitos.";
+            }
+
+            if (!valido) {
+                inputIdentificador.classList.add('is-invalid');
+                inputIdentificador.classList.remove('is-valid');
+                if(errorDni) { errorDni.style.display = 'block'; errorDni.textContent = mensaje; }
+            } else {
+                inputIdentificador.classList.remove('is-invalid');
+                inputIdentificador.classList.add('is-valid');
+                if(errorDni) errorDni.style.display = 'none';
+            }
+        }
+
+        function configurarCampo() {
+            const tipo = selectTipo.value;
+            inputIdentificador.classList.remove('is-valid', 'is-invalid'); 
+            
+            if (tipo === 'PN') {
+                labelIdentificador.textContent = "DNI (8 dígitos)";
+                inputIdentificador.setAttribute('maxlength', '8');
+            } else if (tipo === 'PJ') {
+                labelIdentificador.textContent = "RUC (11 dígitos)";
+                inputIdentificador.setAttribute('maxlength', '11');
+            }
+            validarLongitud();
+        }
+
+        if(selectTipo && inputIdentificador) {
+            selectTipo.addEventListener('change', function() {
+                inputIdentificador.value = ""; // Limpiar al cambiar tipo
+                configurarCampo();
+            });
+
+            inputIdentificador.addEventListener('input', function(e) {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                validarLongitud();
+            });
+
+            configurarCampo(); // Init
+        }
+    });
+</script>
+
+<style>
+    .border-dashed { border-style: dashed !important; }
+    .x-small { font-size: 0.75rem; }
+    .form-control:read-only { background-color: #e9ecef; opacity: 1; }
+</style>
+{% endblock %}

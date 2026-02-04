@@ -1,0 +1,26 @@
+{% extends 'gestion/base.html' %}
+{% block title %}Anular {{ documento.expediente_id }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="bi bi-x-octagon-fill"></i> Anular / Cancelar Trámite</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-danger bg-opacity-10">
+                    <strong>¡Atención!</strong> Esta acción finalizará el trámite inmediatamente como "Cancelado". No se podrá reactivar.
+                </div>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger">Confirmar Anulación</button>
+                        <a href="{% url 'detalle_documento' documento.expediente_id %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

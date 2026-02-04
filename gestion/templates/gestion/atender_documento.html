@@ -1,0 +1,37 @@
+<!-- gestion/templates/gestion/atender_documento.html -->
+
+{% extends 'gestion/base.html' %}
+
+{% block title %}
+    Atender Trámite: {{ documento.expediente_id }}
+{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h2 class="h4 mb-0">Atender Trámite: <span class="text-primary">{{ documento.expediente_id }}</span></h2>
+        <p class="mb-0 text-muted">Asunto: {{ documento.asunto }}</p>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+                <label for="{{ form.proveido.id_for_label }}" class="form-label">{{ form.proveido.label }}</label>
+                {{ form.proveido }}
+                <div class="form-text">{{ form.proveido.help_text }}</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.archivo_respuesta.id_for_label }}" class="form-label">{{ form.archivo_respuesta.label }}</label>
+                {{ form.archivo_respuesta }}
+            </div>
+
+            <div class="text-end mt-4">
+                <a href="{% url 'detalle_documento' documento.expediente_id %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-success">Confirmar y Finalizar Trámite</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

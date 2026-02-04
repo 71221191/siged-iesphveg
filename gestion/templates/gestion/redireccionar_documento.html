@@ -1,0 +1,26 @@
+{% extends 'gestion/base.html' %}
+{% block title %}Redireccionar {{ documento.expediente_id }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-warning">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0"><i class="bi bi-signpost-split-fill"></i> Ruta de Emergencia</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-light border">
+                    Use esta opción solo si el documento llegó a su bandeja por error y necesita enviarlo a otra área <strong>fuera del flujo automático</strong>.
+                </div>
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-warning">Confirmar Redirección</button>
+                        <a href="{% url 'detalle_documento' documento.expediente_id %}" class="btn btn-secondary">Cancelar</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
