@@ -1162,3 +1162,12 @@ def generar_clave_web():
     """Genera un código de 6 caracteres (Mayúsculas y Números)"""
     caracteres = string.ascii_uppercase + string.digits
     return ''.join(random.choice(caracteres) for _ in range(6))
+
+@login_required
+def check_nuevas_notificaciones(request):
+    try:
+        # Contamos las no leídas
+        count = Notificacion.objects.filter(destinatario=request.user.perfilusuario, leida=False).count()
+        return JsonResponse({'status': 'success', 'count': count})
+    except:
+        return JsonResponse({'status': 'error', 'count': 0})

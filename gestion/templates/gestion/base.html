@@ -180,52 +180,83 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- 1. LÓGICA DE SONIDO INTELIGENTE ---
+            // --- VARIABLES ---
             const audio = document.getElementById('audioNotificacion');
-            // Obtenemos la cantidad actual desde Django (si no hay usuario, es 0)
-            const currentCount = parseInt("{{ notificaciones_no_leidas_count|default:0 }}");
+            const notifDropdown = document.getElementById('notifDropdown');
+            // Buscamos el badge dentro del dropdown (puede que no exista si count es 0)
+            let badge = notifDropdown ? notifDropdown.querySelector('.badge') : null;
             
-            // Recuperamos la cantidad que teníamos guardada en el navegador
-            const lastCount = parseInt(localStorage.getItem('notifCount')) || 0;
-
-            // REGLA: Solo suena si la cantidad ACTUAL es MAYOR que la ANTERIOR
-            if (currentCount > lastCount && audio) {
-                audio.volume = 0.5;
-                audio.play().catch(error => {
-                    console.log("El navegador bloqueó el sonido automático (necesita interacción previa).");
-                });
-            }
-
-            // Actualizamos la memoria del navegador con la nueva cantidad
+            // Valor inicial al cargar la página (viene de Django)
+            let currentCount = parseInt("{{ notificaciones_no_leidas_count|default:0 }}");
+            
+            // Guardamos estado inicial
             localStorage.setItem('notifCount', currentCount);
 
+            // --- FUNCIÓN SONIDO ---
+            function sonar() {
+                if (audio) {
+                    audio.volume = 0.5;
+                    audio.play().catch(e => console.log("Audio bloqueado por navegador (falta interacción)"));
+                }
+            }
 
-            // --- 2. MARCAR COMO LEÍDAS AL ABRIR ---
-            const notifDropdown = document.getElementById('notifDropdown');
-            const notifBadge = notifDropdown ? notifDropdown.querySelector('.badge') : null;
+            // --- EL RADAR (POLLING) CADA 5 SEGUNDOS ---
+            setInterval(() => {
+                fetch("{% url 'api_check_notificaciones' %}")
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const nuevaCantidad = data.count;
+                        
+                        // SI AUMENTARON LAS NOTIFICACIONES...
+                        if (nuevaCantidad > currentCount) {
+                            console.log("¡Correo! Nueva notificación.");
+                            
+                            // 1. Sonar
+                            sonar();
+                            
+                            // 2. Actualizar visualmente el globito rojo sin recargar
+                            if (badge) {
+                                badge.innerText = nuevaCantidad;
+                                badge.style.display = 'inline-block';
+                            } else {
+                                // Si no había globito, recargamos suavemente para que aparezca la estructura
+                                // OJO: Esto solo pasará la primera vez que recibas una notif estando en 0
+                                location.reload(); 
+                            }
+                        }
+                        // Actualizamos la memoria
+                        currentCount = nuevaCantidad;
+                        localStorage.setItem('notifCount', currentCount);
+                    }
+                })
+                .catch(err => console.error("Silencio en la red..."));
+            }, 5000); // <--- 5000 milisegundos = 5 SEGUNDOS (Lo ideal)
 
+
+            // --- MARCAR COMO LEÍDAS ---
             if (notifDropdown) {
                 notifDropdown.addEventListener('show.bs.dropdown', function () {
-                    // Solo si hay badge (hay nuevas), llamamos al servidor
-                    if (notifBadge) {
+                    // Solo llamamos al servidor si hay algo que leer
+                    if (currentCount > 0) {
                         fetch("{% url 'marcar_leidas' %}", {
                             method: 'POST',
                             headers: { 
                                 'X-CSRFToken': '{{ csrf_token }}',
                                 'Content-Type': 'application/json'
                             }
-                        }).then(response => response.json()).then(data => {
-                            if (data.status === 'success') {
-                                notifBadge.style.display = 'none';
-                                // Al marcar como leídas, reseteamos el contador local a 0
-                                localStorage.setItem('notifCount', 0); 
+                        }).then(r => r.json()).then(d => {
+                            if (d.status === 'success') {
+                                if(badge) badge.style.display = 'none';
+                                currentCount = 0;
+                                localStorage.setItem('notifCount', 0);
                             }
                         });
                     }
                 });
             }
 
-            // --- 3. AUTO-CERRAR ALERTAS ---
+            // --- AUTO-CERRAR ALERTAS ---
             const alerts = document.querySelectorAll('.alert');
             alerts.forEach(alert => {
                 setTimeout(() => {

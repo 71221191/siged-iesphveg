@@ -31,4 +31,6 @@ urlpatterns = [
     path('documento/<str:expediente_id>/redireccionar/', views.redireccionar_documento, name='redireccionar_documento'),
     path('documento/<str:expediente_id>/anular/', views.anular_documento, name='anular_documento'),
     path('documento/<str:expediente_id>/etiqueta/', views.imprimir_etiqueta, name='imprimir_etiqueta'),
+    path('api/check-notificaciones/', views.check_nuevas_notificaciones, name='api_check_notificaciones'),
+
 ]
