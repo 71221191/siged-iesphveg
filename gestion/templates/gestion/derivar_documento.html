@@ -474,12 +474,16 @@
         const obsPrincipal = document.getElementsByName('observaciones')[0];
         const selectColaborador = document.getElementById('id_responsable_interno');
 
+        const obsModal = document.getElementById('obsModalAsignar'); 
+
         if (!selectColaborador.value) {
             alert("⚠️ Por favor seleccione un colaborador.");
             return;
         }
 
-        if (!obsPrincipal.value.trim()) {
+        if (obsModal && obsModal.value.trim() !== "") {
+            obsPrincipal.value = "ASIGNACIÓN: " + obsModal.value;
+        } else if (!obsPrincipal.value.trim()) {
             obsPrincipal.value = "Asignación interna de expediente.";
         }
 
@@ -503,6 +507,7 @@
         form.noValidate = true;
         form.submit();
     }
+    
 </script>
 <!-- ESTILOS EXTRA -->
 <style>

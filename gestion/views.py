@@ -97,9 +97,6 @@ def listar_documentos(request):
     }
     return render(request, 'gestion/listar_documentos.html', context)
 
-# gestion/views.py
-# gestion/views.py
-
 @login_required
 def crear_documento(request):
     # 1. PREPARACIÓN DE REQUISITOS (JSON para Frontend)
@@ -184,9 +181,15 @@ def crear_documento(request):
                 doc.estado = 'en_proceso'
                 
                 # Calcular plazos
-                dias_plazo = 2 # Default para manual
-                if not es_destino_manual and 'paso_2' in locals():
+                if es_destino_manual:
+                    # Si es manual (GEN-001), usamos el plazo total del procedimiento (ej. 365)
+                    dias_plazo = doc.procedimiento.plazo_dias_habiles
+                elif 'paso_2' in locals():
+                    # Si es TUPA, usamos el plazo del paso específico
                     dias_plazo = paso_2.plazo_dias
+                else:
+                    dias_plazo = 2
+                # -------------------
                 
                 doc.fecha_limite_paso_actual = calcular_fecha_limite(dias_plazo)
                 doc.fecha_limite_total = calcular_fecha_limite(doc.procedimiento.plazo_dias_habiles)
@@ -551,6 +554,13 @@ def derivar_documento(request, expediente_id):
                         observaciones=f"OBSERVADO/DEVUELTO: {obs}",
                         archivo_adjunto=archivo
                     )
+
+                    Notificacion.objects.create(
+                        destinatario=usuario_retorno,
+                        mensaje=f"Documento OBSERVADO/DEVUELTO: {doc.expediente_id}",
+                        enlace=f"/documentos/{doc.expediente_id}/"
+                    )
+
                     messages.warning(request, f"Documento devuelto a {usuario_retorno}.")
                     return redirect('lista_documentos')
                 else:
@@ -654,7 +664,16 @@ def derivar_documento(request, expediente_id):
                     # Avanzamos el paso (contador)
                     doc.paso_actual += 1
                     doc.estado = 'en_proceso'
-                    doc.fecha_limite_paso_actual = calcular_fecha_limite(2) # Reset plazo
+                    
+
+                    if es_flujo_libre or es_desvio_manual:
+                        dias_a_sumar = doc.procedimiento.plazo_dias_habiles
+                    else:
+                        dias_a_sumar = 2
+                    
+                    doc.fecha_limite_paso_actual = calcular_fecha_limite(dias_a_sumar)
+                    # -------------------
+                    
                     doc.save()
                     
                     # Si hubo desvío, lo indicamos en la observación para auditoría
